@@ -586,3 +586,72 @@ SELECT
 select *
 from stg.stg_payments
 limit 20
+
+SELECT payment_id, COUNT(*) AS row_count
+FROM stg.stg_payments
+GROUP BY payment_id
+HAVING COUNT(*) > 1
+ORDER BY row_count DESC;
+
+SELECT order_id, COUNT(*) AS payment_count
+FROM stg.stg_payments
+GROUP BY order_id
+HAVING COUNT(*) > 1
+ORDER BY payment_count DESC;
+
+SELECT order_id, payment_id, payment_status, payment_date, payment_amount
+FROM stg.stg_payments
+WHERE order_id IN (
+    SELECT order_id FROM stg.stg_payments
+    GROUP BY order_id
+    HAVING COUNT(*) > 1
+)
+ORDER BY order_id, payment_date;
+
+SELECT
+    order_id,
+    COUNT(*) AS payment_records,
+    COUNT(DISTINCT payment_id) AS distinct_payment_ids,
+    SUM(payment_amount) AS total_payment_amount,
+    MIN(payment_date) AS first_payment_date,
+    MAX(payment_date) AS last_payment_date
+FROM stg.stg_payments
+GROUP BY order_id
+HAVING COUNT(*) > 1
+ORDER BY payment_records DESC, total_payment_amount DESC;
+
+
+select *
+from stg.stg_returns
+limit 20
+
+-- Check return_id uniqueness
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT return_id) AS distinct_return_ids,
+    COUNT(*) - COUNT(DISTINCT return_id) AS duplicate_return_ids
+FROM stg.stg_returns;
+
+-- Check refund amount issues
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(*) FILTER (WHERE refund_amount IS NULL) AS missing_refund_amount,
+    COUNT(*) FILTER (WHERE refund_amount < 0) AS negative_refund_amount
+FROM stg.stg_returns;
+
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(*) FILTER (WHERE refund_amount IS NULL) AS missing_refund_amount,
+    COUNT(*) FILTER (WHERE refund_amount < 0) AS negative_refund_amount
+FROM stg.stg_returns;
+
+SELECT
+    COUNT(DISTINCT return_reason) AS distinct_return_reasons
+FROM stg.stg_returns;
+
+SELECT
+    return_reason,
+    COUNT(*) AS row_count
+FROM stg.stg_returns
+GROUP BY return_reason
+ORDER BY row_count DESC;

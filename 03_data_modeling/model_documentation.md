@@ -18,14 +18,6 @@ The model is designed to support business questions such as:
 
 ## 2. Model Overview
 
-The model contains two fact tables because the project includes two different business events:
-
-| fact table                   | business event        | grain                                                 |
-| ---------------------------- | --------------------- | ----------------------------------------------------- |
-| `fact_order_items`           | sales transaction     | one row per product line within one order             |
-| `fact_marketing_touchpoints` | marketing interaction | one row per customer-campaign-channel-date touchpoint |
-
-Multiple fact tables are used because sales transactions and marketing interactions have different grains. Combining them into one fact table would create duplicated rows and incorrect measures.
 
 ---
 
@@ -33,19 +25,82 @@ Multiple fact tables are used because sales transactions and marketing interacti
 
 The model uses the following dimension tables:
 
-| dimension table           | description                                                                                  |
-| ------------------------- | -------------------------------------------------------------------------------------------- |
-| `dim_customers`           | customer attributes such as customer ID, name, country, gender, and loyalty status           |
-| `dim_products`            | product attributes such as product name, category, brand, and price information              |
-| `dim_orders`              | order-level descriptive information such as order status, sales channel, and shipping method |
-| `dim_stores`              | store-related information                                                                    |
-| `dim_date`                | calendar attributes such as year, quarter, month, and weekday                                |
-| `dim_payment`             | payment method and payment-related attributes                                                |
-| `dim_marketing_campaigns` | marketing campaign and channel information                                                   |
-
+| dimension table | description |
+|---|---|
+| `dim_customers` | Customer attributes such as customer ID, name, country, gender, registration date, and loyalty status |
+| `dim_products` | Product attributes such as product name, category, brand, standard price, unit cost, launch date, and product quality flags |
+| `dim_orders` | Order-level descriptive information such as order status, sales channel, shipping method, and order country |
+| `dim_date` | Calendar attributes at day level, such as year, quarter, month, month name, weekday, and weekend flag |
+| `dim_payment` | Descriptive payment attributes such as payment ID, payment method, provider, and payment type |
+| `dim_return_reason` | Return reason attributes such as return reason, return reason category, and whether the reason was provided or unknown |
+| `dim_marketing_campaigns` | Marketing campaign and channel information at campaign-channel level |                                               
 ---
+ ### 1. Payment modelling decision
+
+Payment data is split into a dimension table and a fact table.
+
+`dim_payment` stores descriptive payment attributes, such as payment method, provider, and payment type.
+
+`fact_payments` stores measurable payment events, such as payment amount, payment status, and transaction-level information.
+
+This separation is necessary because payment data is not only descriptive. It also contains business events that can be analysed, for example failed payments, refunded payments, and payment amounts by method.
+
+### 2. Return modelling decision
+
+Return data is split into `dim_return_reason` and `fact_returns`.
+
+`dim_return_reason` describes why an item was returned.  
+Examples include damaged on arrival, wrong item, quality issue, or customer changed mind.
+
+`fact_returns` stores the actual return event, such as the returned order item, return date, refund amount, and return quantity.
+
+This keeps the model clean because the reason for a return is descriptive, while the return itself is a measurable business event.
+
+### 3. Return modelling decision
+
+Return data is split into `dim_return_reason` and `fact_returns`.
+
+`dim_return_reason` describes why an item was returned.  
+Examples include damaged on arrival, wrong item, quality issue, or customer changed mind.
+
+`fact_returns` stores the actual return event, such as the returned order item, return date, refund amount, and return quantity.
+
+This keeps the model clean because the reason for a return is descriptive, while the return itself is a measurable business event.
+
+### 4. Date dimension decision
+
+`dim_date` is created at day level.
+
+Even if many analyses are later shown by month, quarter, or year, the fact tables usually contain exact dates. A day-level date dimension allows flexible analysis at different time levels.
+
+Examples:
+
+- daily sales
+- monthly revenue
+- quarterly growth
+- weekday vs weekend performance
+- return rate by month
+- payment issues by date
+
+### 5 Unknown Dimension Rows
+
+Some dimension tables include an unknown fallback row with surrogate key `-1`.
+
+This row is used when a fact record cannot be matched to a valid dimension record. Instead of deleting the fact record, the model keeps it and links it to the unknown row.
+
+This protects the completeness of the analysis while making data quality issues visible.
+
 
 ## 4. Fact Tables
+
+The model uses the following fact tables:
+
+| fact table | grain | purpose |
+|---|---|---|
+| `fact_order_items` | One row per product line within one order | Main sales fact table for revenue, quantity, product, customer, and order analysis |
+| `fact_payments` | One row per payment transaction | Used to analyse payment amounts, payment status, payment method performance, and payment issues |
+| `fact_returns` | One row per returned order item or return event | Used to analyse returned items, return reasons, refund amounts, and return rates |
+| `fact_marketing_touchpoints` | One row per marketing touchpoint | Used to analyse marketing campaign interactions and channel performance |
 
 ### 4.1 `fact_order_items`
 
@@ -65,7 +120,6 @@ This means that if one order contains three products, the fact table will contai
 order_key
 customer_key
 product_key
-store_key
 date_key
 payment_key
 ```
@@ -267,6 +321,10 @@ This avoids duplicated revenue and makes the analysis explainable.
 
 * Which shipping method is used most?
 * Are returns concentrated in certain product categories?
+* Which payment methods generate the most paid revenue?
+* Which payment methods have the highest refund rate?
+* Do BNPL/Klarna customers have higher average order value?
+* How much revenue is pending and not yet safely received?
 
 ### Marketing
 
