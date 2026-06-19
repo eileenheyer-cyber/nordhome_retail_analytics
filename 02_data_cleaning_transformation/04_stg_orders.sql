@@ -44,10 +44,13 @@ converted_values AS (
         CASE
             WHEN order_date_raw ~ '^\d{4}-\d{2}-\d{2}$'
                 THEN TO_DATE(order_date_raw, 'YYYY-MM-DD')
+
             WHEN order_date_raw ~ '^\d{2}/\d{2}/\d{4}$'
                 THEN TO_DATE(order_date_raw, 'DD/MM/YYYY')
+
             WHEN order_date_raw ~ '^\d{2}-\d{2}-\d{4}$'
                 THEN TO_DATE(order_date_raw, 'MM-DD-YYYY')
+
             ELSE NULL
         END AS order_date,
 
@@ -59,15 +62,30 @@ converted_values AS (
     FROM cleaned_text
 ),
 
+date_enriched AS (
+    SELECT
+        *,
+
+        EXTRACT(YEAR FROM order_date)::INT AS order_year,
+        EXTRACT(MONTH FROM order_date)::INT AS order_month,
+        EXTRACT(QUARTER FROM order_date)::INT AS order_quarter
+
+    FROM converted_values
+),
+
 flagged_values AS (
     SELECT
         *,
-        COUNT(*) OVER (PARTITION BY order_id) AS order_id_record_count,
+        COUNT(*) OVER (
+            PARTITION BY order_id
+        ) AS order_id_record_count,
+
         ROW_NUMBER() OVER (
             PARTITION BY order_id
             ORDER BY order_date DESC NULLS LAST
         ) AS row_num
-    FROM converted_values
+
+    FROM date_enriched
     WHERE order_id IS NOT NULL
 ),
 
@@ -75,16 +93,31 @@ final AS (
     SELECT
         order_id,
         customer_id,
+
         order_date,
+        order_year,
+        order_month,
+        order_quarter,
+
         order_status,
         country,
         sales_channel,
         shipping_method,
 
         order_id_record_count > 1 AS duplicate_order_id_flag,
+
         customer_id IS NULL AS missing_customer_id_flag,
-        COALESCE(customer_id LIKE '%GHOST%', FALSE) AS ghost_customer_flag,
-        order_date IS NULL AS invalid_order_date_flag,
+
+        COALESCE(
+            customer_id ILIKE '%GHOST%',
+            FALSE
+        ) AS ghost_customer_flag,
+
+        (
+            order_date IS NULL
+            OR order_date < DATE '2021-01-01' -- -- Flag orders with missing dates or dates outside the expected business period as invalid.
+            OR order_date > DATE '2024-06-30'
+        ) AS invalid_order_date_flag,
 
         COALESCE(
             order_status NOT IN (

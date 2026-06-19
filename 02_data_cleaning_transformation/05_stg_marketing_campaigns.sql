@@ -13,7 +13,7 @@ Cleaning steps:
 
 CREATE SCHEMA IF NOT EXISTS stg;
 
-DROP TABLE IF EXISTS stg.stg_marketing_campaigns
+DROP TABLE IF EXISTS stg.stg_marketing_campaigns;
 
 CREATE TABLE stg.stg_marketing_campaigns AS
 WITH source AS (
@@ -37,9 +37,23 @@ converted_values AS (
     SELECT
         campaign_id,
         customer_id,
-        INITCAP(campaign_name_raw) AS campaign_name,
-        INITCAP(channel_raw) AS channel,
+
+        -- Keep campaign name as text, do not force INITCAP
+        campaign_name_raw AS campaign_name,
+
+        -- Standardize channel values
+        CASE
+            WHEN UPPER(channel_raw) = 'SMS' THEN 'SMS'
+            WHEN LOWER(channel_raw) = 'email' THEN 'Email'
+            WHEN LOWER(channel_raw) = 'affiliate' THEN 'Affiliate'
+            WHEN LOWER(channel_raw) = 'influencer' THEN 'Influencer'
+            WHEN LOWER(channel_raw) = 'paid social' THEN 'Paid Social'
+            WHEN LOWER(channel_raw) = 'push notification' THEN 'Push Notification'
+            ELSE channel_raw
+        END AS channel,
+
         campaign_date_raw,
+
         CASE
             WHEN campaign_date_raw ~ '^\d{4}-\d{2}-\d{2}$'
                 THEN TO_DATE(campaign_date_raw, 'YYYY-MM-DD')
@@ -49,11 +63,13 @@ converted_values AS (
                 THEN TO_DATE(campaign_date_raw, 'MM-DD-YYYY')
             ELSE NULL
         END AS campaign_date,
+
         CASE
             WHEN clicked_raw IN ('0', '1')
                 THEN clicked_raw::INTEGER
             ELSE NULL
         END AS clicked,
+
         CASE
             WHEN converted_raw IN ('0', '1')
                 THEN converted_raw::INTEGER
@@ -63,15 +79,17 @@ converted_values AS (
 ),
 
 flagged_values AS (
-    SELECT
+    SELECT   --This checks whether the same customer received the same campaign through the same channel on the same date more than once. The duplicate logic should be based on the real business grain:
         *,
-        COUNT(*) OVER (PARTITION BY campaign_id, customer_id, campaign_date) AS campaign_touchpoint_count, --counts how many times the same campaign/customer/date combination appears
+        COUNT(*) OVER (
+            PARTITION BY campaign_id, customer_id, campaign_date
+        ) AS campaign_touchpoint_count,  
+
         ROW_NUMBER() OVER (
             PARTITION BY campaign_id, customer_id, campaign_date
-            ORDER BY campaign_id
+            ORDER BY converted DESC NULLS LAST, clicked DESC NULLS LAST
         ) AS row_num
     FROM converted_values
-    WHERE campaign_id IS NOT NULL
 ),
 
 final AS (
@@ -83,13 +101,15 @@ final AS (
         campaign_date,
         clicked,
         converted,
+
         campaign_touchpoint_count > 1 AS duplicate_touchpoint_flag,
         customer_id IS NULL AS missing_customer_id_flag,
-        COALESCE(customer_id LIKE '%GHOST%', FALSE) AS ghost_customer_flag,
+        COALESCE(customer_id ILIKE '%GHOST%', FALSE) AS ghost_customer_flag,
         campaign_date IS NULL AS invalid_campaign_date_flag,
         clicked IS NULL AS invalid_clicked_flag,
         converted IS NULL AS invalid_converted_flag,
         COALESCE(converted = 1 AND clicked = 0, FALSE) AS converted_without_click_flag,
+
         CURRENT_TIMESTAMP AS cleaned_at
     FROM flagged_values
     WHERE row_num = 1

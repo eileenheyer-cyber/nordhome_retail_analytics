@@ -134,18 +134,19 @@ After creating `staging.stg_order_items`, the issue flags were counted to confir
 
 **cleaning decisions**
 
-| Column / Issue                    | Severity | Cleaning decision                                                                                                                      |
-| --------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `order_id`                        | High     | Trim values and convert empty strings to `NULL`. Rows with missing `order_id` are excluded because the order cannot be reliably keyed. |
-| Duplicate `order_id` values       | High     | Use `COUNT(*) OVER (PARTITION BY order_id)` to flag duplicates, then keep one row per order using `ROW_NUMBER()`.                      |
-| `customer_id`                     | High     | Trim values and convert empty strings to `NULL`. Missing customer IDs are flagged with `missing_customer_id_flag`.                     |
-| Ghost `customer_id` values        | Medium   | Keep the row in staging, but flag customer IDs containing `GHOST` with `ghost_customer_flag`.                                          |
-| `order_date` stored as text       | High     | Convert valid `YYYY-MM-DD`, `DD/MM/YYYY`, and `MM-DD-YYYY` values into a proper `DATE`. Invalid dates become `NULL`.                  |
-| Invalid `order_date` values       | High     | Flag rows where the date conversion fails using `invalid_order_date_flag`.                                                             |
-| `order_status`                   | Medium   | Standardize text formatting and flag values outside `Completed`, `Shipped`, `Processing`, `Cancelled`, `Returned`, and `Refunded`.    |
-| `country`                         | Low      | Trim and standardize casing for reporting consistency.                                                                                 |
-| `sales_channel`                   | Low      | Trim and standardize casing only, because the source values are already clean.                                                         |
-| `shipping_method`                 | Low      | Trim and standardize casing for reporting consistency.                                                                                 |
+
+| Column / Issue | Severity | Cleaning decision |
+|---|---|---|
+| `order_id` | High | Trim values and convert empty strings to `NULL`. Rows with missing `order_id` are excluded because the order cannot be reliably keyed. |
+| Duplicate `order_id` values | High | Use `COUNT(*) OVER (PARTITION BY order_id)` to flag duplicates, then keep one row per order using `ROW_NUMBER()`. |
+| `customer_id` | Low | Trim values and convert empty strings to `NULL`. |
+| Ghost `customer_id` values | Medium | Keep the row in staging, but flag customer IDs containing `GHOST` with `ghost_customer_flag`. |
+| `order_date` stored as text | High | Convert valid `YYYY-MM-DD`, `DD/MM/YYYY`, and `MM-DD-YYYY` values into a proper `DATE`. |
+| `order_date` validation | High | Flag rows where `order_date` is missing or outside the expected period from `2021-01-01` to `2024-06-30`. 
+| `order_status` | Medium | Standardize text formatting and validate against the expected status domain. 
+| `country` | Low | Trim and standardize casing for reporting consistency. |
+| `sales_channel` | Low | Trim and standardize casing because source values are already clean. |
+| `shipping_method` | Low | Trim and standardize casing for reporting consistency.  |
 
 **validation query**
 

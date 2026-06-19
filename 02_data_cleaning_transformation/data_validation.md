@@ -268,75 +268,203 @@ WHERE duplicate_touchpoint_flag
 
 
 
-**check 1:order_items without product**
---Count + percentage
-```sql
-SELECT 
-    COUNT(*) AS ghost_order_item_rows,
-    COUNT(DISTINCT oi.product_id) AS ghost_product_ids,
-    ROUND(
-        COUNT(*) * 100.0 / (SELECT COUNT(*) FROM stg.stg_order_items),
-        2
-    ) AS ghost_row_percentage
-FROM stg.stg_order_items oi
-LEFT JOIN stg.stg_products p
-    ON oi.product_id = p.product_id
-WHERE p.product_id IS NULL;
+## 7 Marketing Campaign ID Grain Issue
 
--- Revenue impact
+### Check purpose
+
+The purpose of this check is to understand whether `campaign_id` represents a real marketing campaign or a single marketing interaction/touchpoint.
+
+This matters because the meaning of an ID decides where it should be used in the data model. A real campaign ID would belong in `dim_marketing_campaigns`. A touchpoint ID belongs in the marketing fact table.
+
+
+### SQL check
+
+```sql
 SELECT
-    COUNT(*) AS ghost_rows,
-    ROUND(SUM(quantity_capped * unit_price), 2) AS affected_gross_revenue,
-    ROUND(
-        SUM(quantity_capped * unit_price) * 100.0
-        / (SELECT SUM(quantity_capped * unit_price)
-           FROM stg.stg_order_items),
-        2
-    ) AS affected_revenue_percentage
-FROM stg.stg_order_items oi
-LEFT JOIN stg.stg_products p
-    ON oi.product_id = p.product_id
-WHERE p.product_id IS NULL;
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT campaign_id) AS distinct_campaign_ids,
+    COUNT(DISTINCT campaign_name) AS distinct_campaign_names,
+    COUNT(DISTINCT CONCAT_WS('|', campaign_name, channel)) AS distinct_campaign_channel_combinations
+FROM stg.stg_marketing_campaigns;
 ```
-*Finding*: 452 order item rows have product_ids that do not exist in stg_products.
-*Impact*: 0.60% of rows and 0.62% of gross revenue affected.
-*Decision*: keep and flag these rows.
 
-**check 2: Orders without customer**
+**Result:**
+
+| metric                                      | value  |
+|---------------------------------------------|--------|
+| total_rows                                  | 12,000 |
+| distinct_campaign_ids                       | 12,000 |
+| distinct_campaign_names                     | 14     |
+| distinct_campaign_channel_combinations      | 98     |
+
+**Interpretation** The result shows that `campaign_id` is unique for every row. Therefore, it does not represent a reusable campaign identifier, but rather a marketing touchpoint or interaction ID.
+
+The actual campaign dimension is better represented by the combination of:
+
+
+campaign_name + channel
+
+
+### Severity
+
+**Medium**
+
+This issue does not make the data unusable, but it affects the data model design. If `campaign_id` were used directly as the campaign dimension key, the dimension table would contain 12,000 rows instead of around 98 campaign-channel combinations.
+
+That would make the dimension too detailed and would hide the real analytical level of marketing campaigns.
+
+### Cleaning decision
+
+The raw column name `campaign_id` was kept unchanged in the raw table.
+
+In the staging layer, `campaign_id` should be renamed to:
+
+```text
+marketing_touchpoint_id
+```
+
+This makes the meaning of the column clearer.
+
+The campaign dimension should not use `marketing_touchpoint_id` as its business key. Instead, `dim_marketing_campaigns` should be created from distinct combinations of:
+
+```text
+campaign_name
+channel
+```
+
+The future marketing fact table should keep `marketing_touchpoint_id` as a degenerate identifier and link to:
+
+```text
+customer_key
+campaign_key
+date_key
+```
+
+### Updated modelling decision
+
+```text
+dim_marketing_campaigns
+- campaign_key
+- campaign_name
+- channel
+```
+
+
+fact_marketing_touchpoints
+- marketing_touchpoint_id
+- customer_key
+- campaign_key
+- date_key
+- clicked
+- converted
+
+## 8. Marketing Campaign Missing Value Check
+
+### Purpose
+
+The purpose of this check is to verify whether the marketing campaign data contains missing values in the key descriptive campaign columns.
+
+This check is important before creating `dim_marketing_campaigns`, because the campaign dimension is created at the following grain:
+
+```text
+campaign_name + channel
+```
+
+If `campaign_name` or `channel` is missing, the affected rows may need to be mapped to an Unknown Campaign member in the dimension table.
+
+### SQL
 
 ```sql
---Count + percentage
 SELECT
-    COUNT(*) AS orders_without_customer,
-    ROUND(
-        COUNT(*) * 100.0 / (SELECT COUNT(*) FROM stg.stg_orders),
-        2
-    ) AS order_percentage
-FROM stg.stg_orders o
-LEFT JOIN stg.stg_customers c
-    ON o.customer_id = c.customer_id
-WHERE c.customer_id IS NULL;
+    COUNT(*) AS total_rows,
 
----- Revenue impact
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL
+    ) AS missing_campaign_name,
+
+    COUNT(*) FILTER (
+        WHERE channel IS NULL
+    ) AS missing_channel,
+
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL OR channel IS NULL
+    ) AS rows_needing_unknown_campaign
+
+FROM stg.stg_marketing_campaigns;
+```
+
+### Result
+
+| metric                        |  value |
+| ----------------------------- | -----: |
+| total_rows                    | 12,000 |
+| missing_campaign_name         |      0 |
+| missing_channel               |      0 |
+| rows_needing_unknown_campaign |      0 |
+
+### Finding
+
+No missing campaign names or channels were found in `stg.stg_marketing_campaigns`.
+
+This means that the current data does not require an Unknown Campaign fallback row for missing campaign information.
+
+However, the Unknown Campaign member can still be created later in `dim_marketing_campaigns` as a defensive modelling decision, so future unmatched or missing campaign values can still be loaded into the fact table without breaking the model.
+
+
+## 8. Marketing Campaign Missing Value Check
+
+### Purpose
+
+The purpose of this check is to verify whether the marketing campaign data contains missing values in the key descriptive campaign columns.
+
+This check is important before creating `dim_marketing_campaigns`, because the campaign dimension is created at the following grain:
+
+```text
+campaign_name + channel
+```
+
+If `campaign_name` or `channel` is missing, the affected rows may need to be mapped to an Unknown Campaign member in the dimension table.
+
+### SQL
+
+```sql
 SELECT
-    COUNT(DISTINCT o.order_id) AS orders_without_customer,
-    ROUND(SUM(oi.quantity_capped * oi.unit_price), 2) AS affected_gross_revenue,
-    ROUND(
-        SUM(oi.quantity_capped * oi.unit_price) * 100.0
-        / (SELECT SUM(quantity_capped * unit_price)
-           FROM stg.stg_order_items),
-        2
-    ) AS affected_revenue_percentage
-FROM stg.stg_orders o
-LEFT JOIN stg.stg_customers c
-    ON o.customer_id = c.customer_id
-LEFT JOIN stg.stg_order_items oi
-    ON o.order_id = oi.order_id
-WHERE c.customer_id IS NULL;
+    COUNT(*) AS total_rows,
+
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL
+    ) AS missing_campaign_name,
+
+    COUNT(*) FILTER (
+        WHERE channel IS NULL
+    ) AS missing_channel,
+
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL OR channel IS NULL
+    ) AS rows_needing_unknown_campaign
+
+FROM stg.stg_marketing_campaigns;
+```
+
+### Result
+
+| metric                        |  value |
+| ----------------------------- | -----: |
+| total_rows                    | 12,000 |
+| missing_campaign_name         |      0 |
+| missing_channel               |      0 |
+| rows_needing_unknown_campaign |      0 |
+
+### Finding
+
+No missing campaign names or channels were found in `stg.stg_marketing_campaigns`.
+
+This means that the current data does not require an Unknown Campaign fallback row for missing campaign information.
+
+However, the Unknown Campaign member can still be created later in `dim_marketing_campaigns` as a defensive modelling decision, so future unmatched or missing campaign values can still be loaded into the fact table without breaking the model.
 
 
-
-# Staging Validation Checks
+## 9. Relationship and Business-rule validation checks
 
 ## Purpose
 

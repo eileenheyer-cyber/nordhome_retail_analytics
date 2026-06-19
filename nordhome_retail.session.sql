@@ -426,14 +426,28 @@ LEFT JOIN raw.raw_products rp
 LEFT JOIN stg.stg_products sp
     ON g.product_id = sp.product_id;
 
+SELECT
+*
+FROM stg.stg_orders
+where order_id LIKE 'PROD-GHOST-%'
 
-SELECT*
-from stg.stg_products
-where 
 
-SELECT  count(*)
-from stg.stg_customers
-where customer_id is NULL
+SELECT
+    order_quality_status,
+    COUNT(*) AS status_count
+FROM mart.dim_order
+GROUP BY order_quality_status
+ORDER BY status_count DESC;
+
+SELECT
+    COUNT(*) AS total_orders,
+    COUNT(*) FILTER (WHERE invalid_order_date_flag = TRUE) AS invalid_order_date_count,
+    ROUND(
+        COUNT(*) FILTER (WHERE invalid_order_date_flag = TRUE) * 100.0 / COUNT(*),
+        2
+    ) AS invalid_order_date_percentage
+FROM stg.stg_orders;
+
 
 
 SELECT
@@ -441,6 +455,134 @@ SELECT
     data_type
 FROM information_schema.columns
 WHERE table_schema = 'stg'
-  AND table_name = 'stg_customers'
+  AND table_name = 'stg_orders'
 ORDER BY ordinal_position;
 
+SELECT
+    COUNT(*) AS total_orders,
+
+    COUNT(*) FILTER (
+        WHERE order_date IS NULL
+    ) AS missing_or_failed_date_count,
+
+    COUNT(*) FILTER (
+        WHERE order_date < DATE '2021-01-01'
+    ) AS before_expected_period_count,
+
+    COUNT(*) FILTER (
+        WHERE order_date > DATE '2024-06-30'
+    ) AS after_expected_period_count
+
+FROM stg.stg_orders;
+
+
+SELECT *
+FROM stg.stg_marketing_campaigns
+LIMIT 20;
+
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT campaign_id) AS distinct_campaign_ids,
+    COUNT(DISTINCT campaign_name) AS distinct_campaign_names,
+    COUNT(DISTINCT CONCAT_WS('|', campaign_name, channel)) AS distinct_campaign_channel_combinations
+FROM stg.stg_marketing_campaigns;
+
+SELECT
+    campaign_name,
+    channel,
+    COUNT(*) AS rows,
+    COUNT(DISTINCT campaign_id) AS campaign_ids,
+    COUNT(DISTINCT customer_id) AS customers,
+    SUM(clicked) AS total_clicks,
+    SUM(converted) AS total_conversions
+FROM stg.stg_marketing_campaigns
+GROUP BY campaign_name, channel
+ORDER BY rows DESC;
+
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT campaign_id) AS distinct_campaign_ids,
+    COUNT(DISTINCT campaign_name) AS distinct_campaign_names,
+    COUNT(DISTINCT CONCAT_WS('|', campaign_name, channel)) AS distinct_campaign_channel_combinations
+FROM stg.stg_marketing_campaigns;
+
+SELECT
+COUNT(*) OVER (
+    PARTITION BY customer_id, campaign_name, channel, campaign_date
+) AS campaign_touchpoint_count
+from stg.stg_marketing_campaigns;
+
+SELECT
+    COUNT(*) AS duplicate_groups
+FROM stg.stg_marketing_campaigns
+WHERE duplicate_touchpoint_flag = TRUE;
+
+
+SELECT
+    COUNT(*) AS total_rows,
+
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL
+    ) AS missing_campaign_name,
+
+    COUNT(*) FILTER (
+        WHERE channel IS NULL
+    ) AS missing_channel,
+
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL OR channel IS NULL
+    ) AS rows_needing_unknown_campaign
+FROM stg.stg_marketing_campaigns;SELECT
+    COUNT(*) AS total_rows,
+
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL
+    ) AS missing_campaign_name,
+
+    COUNT(*) FILTER (
+        WHERE channel IS NULL
+    ) AS missing_channel,
+
+    COUNT(*) FILTER (
+        WHERE campaign_name IS NULL OR channel IS NULL
+    ) AS rows_needing_unknown_campaign
+FROM stg.stg_marketing_campaigns;
+
+SELECT *
+FROM mart.dim_marketing_campaigns
+ORDER BY campaign_key
+LIMIT 50;
+
+SELECT COUNT(*) AS total_campaign_dimension_rows
+FROM mart.dim_marketing_campaigns;
+
+SELECT *
+FROM mart.dim_marketing_campaigns
+WHERE campaign_key = -1;
+
+SELECT
+    campaign_name,
+    channel,
+    COUNT(*) AS row_count
+FROM mart.dim_marketing_campaigns
+GROUP BY
+    campaign_name,
+    channel
+HAVING COUNT(*) > 1;
+
+SELECT
+    COUNT(*) FILTER (WHERE campaign_key IS NULL) AS null_campaign_keys,
+    COUNT(*) FILTER (WHERE campaign_name IS NULL) AS null_campaign_names,
+    COUNT(*) FILTER (WHERE channel IS NULL) AS null_channels
+FROM mart.dim_marketing_campaigns;
+
+SELECT
+    (SELECT COUNT(*) FROM mart.dim_marketing_campaigns) AS dim_rows,
+    (SELECT COUNT(DISTINCT CONCAT_WS('|', campaign_name, channel))
+     FROM stg.stg_marketing_campaigns) AS staging_campaign_channel_combinations;
+
+
+
+select *
+from stg.stg_payments
+limit 20
