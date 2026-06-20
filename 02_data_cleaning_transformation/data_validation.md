@@ -34,7 +34,7 @@ SELECT 'stg_marketing_campaigns', COUNT(*) FROM stg.stg_marketing_campaigns;
 | `stg_orders`              | 31000     |
 | `stg_order_items`         | 75473     |
 
-**Interpretation:** All expected staging tables exist and contain records. These row counts provide a baseline for later modeling checks.
+**Interpretation:** All expected staging tables exist and contain records. Differences from raw row counts are expected — stg_orders (31,000 vs raw 31,465) and stg_payments (31,465 vs raw 31,936) had duplicate rows removed during staging.
 
 
 ## 2. Business Key Uniqueness
@@ -58,21 +58,27 @@ SELECT 'payments', COUNT(*), COUNT(DISTINCT payment_id)
 FROM stg.stg_payments
 UNION ALL
 SELECT 'returns', COUNT(*), COUNT(DISTINCT return_id)
-FROM stg.stg_returns;
+FROM stg.stg_returns
+UNION ALL
+SELECT 'marketing_campaigns', COUNT(*), COUNT(DISTINCT marketing_touchpoint_id)
+FROM stg.stg_marketing_campaigns;
 ```
 
 **Result:**
 
-| Table name    | Total rows | Distinct keys |
-| ------------- | ---------- | ------------- |
-| `products`    | 1090       | 1090          |
-| `returns`     | 6097       | 6097          |
-| `customers`   | 8364       | 8364          |
-| `orders`      | 31000      | 31000         |
-| `payments`    | 31465      | 31465         |
-| `order_items` | 75473      | 75473         |
+| Table name               | Total rows | Distinct keys |
+| ------------------------ | ---------- | ------------- |
+| `products`               | 1090       | 1090          |
+| `returns`                | 6097       | 6097          |
+| `customers`              | 8364       | 8364          |
+| `orders`                 | 31000      | 31000         |
+| `payments`               | 31465      | 31465         |
+| `order_items`            | 75473      | 75473         |
+| `marketing_campaigns`    | 12000      | 12000         |
 
-**Interpretation:** For each checked staging table, the total row count matches the distinct key count. This confirms that duplicate business keys were successfully removed or resolved during staging.
+**Interpretation:** For each staging table, the total row count matches the distinct key count. This confirms that duplicate business keys were successfully removed or resolved during staging.
+
+> **Note — marketing_campaigns:** The 12,000 / 12,000 result for `marketing_touchpoint_id` is expected but does not mean the campaign business key is clean. `marketing_touchpoint_id` is a row-level interaction identifier, not a reusable campaign key — every row is unique by design. The real campaign grain is `campaign_name + channel`, which produces 98 distinct combinations. This will be handled in `dim_marketing_campaigns`. See Section 7 for full analysis.
 
 ## 3. Relationship Integrity
 
@@ -251,7 +257,23 @@ WHERE duplicate_touchpoint_flag
 
 **Interpretation:** Marketing campaign records have no remaining flags. The other staging tables still contain flagged rows, mainly due to known data quality issues such as unmatched references, missing payment methods, duplicate IDs, suspicious quantities, zero prices, and return-related business-rule issues. These rows are preserved in staging so they can be reviewed or filtered intentionally in downstream modeling.
 
-## Result 6. Check Date Columns Converted Correctly
+## 6. Check Date Columns Converted Correctly
+
+**Purpose:** Confirm that date columns were successfully converted from text to DATE in all staging tables. A NULL date means the conversion failed or the value was invalid.
+
+```sql
+SELECT 'products launch_date' AS check_name, COUNT(*) FILTER (WHERE launch_date IS NULL) AS null_dates FROM stg.stg_products
+UNION ALL
+SELECT 'returns return_date', COUNT(*) FILTER (WHERE return_date IS NULL) FROM stg.stg_returns
+UNION ALL
+SELECT 'customers registration_date', COUNT(*) FILTER (WHERE registration_date IS NULL) FROM stg.stg_customers
+UNION ALL
+SELECT 'campaigns campaign_date', COUNT(*) FILTER (WHERE campaign_date IS NULL) FROM stg.stg_marketing_campaigns
+UNION ALL
+SELECT 'payments payment_date', COUNT(*) FILTER (WHERE payment_date IS NULL) FROM stg.stg_payments
+UNION ALL
+SELECT 'orders order_date', COUNT(*) FILTER (WHERE order_date IS NULL) FROM stg.stg_orders;
+```
 
 **Result:**
 
@@ -268,7 +290,7 @@ WHERE duplicate_touchpoint_flag
 
 
 
-## 7 Marketing Campaign ID Grain Issue
+## 7. Marketing Campaign ID Grain Issue
 
 ### Check purpose
 
@@ -411,62 +433,7 @@ This means that the current data does not require an Unknown Campaign fallback r
 However, the Unknown Campaign member can still be created later in `dim_marketing_campaigns` as a defensive modelling decision, so future unmatched or missing campaign values can still be loaded into the fact table without breaking the model.
 
 
-## 8. Marketing Campaign Missing Value Check
-
-### Purpose
-
-The purpose of this check is to verify whether the marketing campaign data contains missing values in the key descriptive campaign columns.
-
-This check is important before creating `dim_marketing_campaigns`, because the campaign dimension is created at the following grain:
-
-```text
-campaign_name + channel
-```
-
-If `campaign_name` or `channel` is missing, the affected rows may need to be mapped to an Unknown Campaign member in the dimension table.
-
-### SQL
-
-```sql
-SELECT
-    COUNT(*) AS total_rows,
-
-    COUNT(*) FILTER (
-        WHERE campaign_name IS NULL
-    ) AS missing_campaign_name,
-
-    COUNT(*) FILTER (
-        WHERE channel IS NULL
-    ) AS missing_channel,
-
-    COUNT(*) FILTER (
-        WHERE campaign_name IS NULL OR channel IS NULL
-    ) AS rows_needing_unknown_campaign
-
-FROM stg.stg_marketing_campaigns;
-```
-
-### Result
-
-| metric                        |  value |
-| ----------------------------- | -----: |
-| total_rows                    | 12,000 |
-| missing_campaign_name         |      0 |
-| missing_channel               |      0 |
-| rows_needing_unknown_campaign |      0 |
-
-### Finding
-
-No missing campaign names or channels were found in `stg.stg_marketing_campaigns`.
-
-This means that the current data does not require an Unknown Campaign fallback row for missing campaign information.
-
-However, the Unknown Campaign member can still be created later in `dim_marketing_campaigns` as a defensive modelling decision, so future unmatched or missing campaign values can still be loaded into the fact table without breaking the model.
-
-
 ## 9. Relationship and Business-rule validation checks
-
-## Purpose
 
 After cleaning the raw tables and storing them in the staging layer, relationship and business-rule validation checks were performed.
 
@@ -483,7 +450,7 @@ The main focus of this validation file is:
 
 ---
 
-## 1. Referential Integrity Overview
+### 1. Referential Integrity Overview
 
 ### Check purpose
 
@@ -519,7 +486,7 @@ These records were not deleted. They were preserved with flags in the staging la
 
 ---
 
-## 2. Order Items Without Matching Product
+### 2. Order Items Without Matching Product
 
 ### Check purpose
 
@@ -631,7 +598,7 @@ They are kept and flagged, but not corrected manually.
 
 ---
 
-## 3. Orders Without Matching Customer
+### 3. Orders Without Matching Customer
 
 ### Check purpose
 
@@ -727,7 +694,7 @@ These rows can be included in total revenue analysis, but should be excluded or 
 
 ---
 
-## 4. Payments Without Matching Order
+### 4. Payments Without Matching Order
 
 ### Check purpose
 
@@ -813,7 +780,7 @@ They will be excluded from the main sales mart and used only for payment quality
 
 ---
 
-## 5. Returns Without Matching Order
+### 5. Returns Without Matching Order
 
 ### Check purpose
 
@@ -873,7 +840,7 @@ They may still be used for return data quality reporting.
 
 ---
 
-## 6. Returns Without Matching Product
+### 6. Returns Without Matching Product
 
 ### Check purpose
 
@@ -927,7 +894,7 @@ High
 
 ---
 
-## 7. Missing Return Product Pattern Check
+### 7. Missing Return Product Pattern Check
 
 ### Check purpose
 
@@ -977,7 +944,7 @@ The issue is caused by ghost product references.
 
 ---
 
-## 8. Most Frequent Ghost Product IDs in Returns
+### 8. Most Frequent Ghost Product IDs in Returns
 
 ### Check purpose
 
@@ -1020,7 +987,7 @@ This means the issue is spread across many ghost product IDs rather than being c
 
 ---
 
-## 9. Ghost Returns Matched to Original Order Items
+### 9. Ghost Returns Matched to Original Order Items
 
 ### Check purpose
 
@@ -1082,7 +1049,7 @@ It is also a return transaction consistency issue.
 
 ---
 
-## 10. Ghost Product Correction Test
+### 10. Ghost Product Correction Test
 
 ### Check purpose
 
@@ -1153,7 +1120,7 @@ They should not be used for detailed product-level return analysis.
 
 ---
 
-## 11. Final Validation Summary
+### 11. Final Validation Summary
 
 | Issue                       | Count | Percentage |     Financial Impact | Severity | Decision                                                                          |
 | --------------------------- | ----: | ---------: | -------------------: | -------- | --------------------------------------------------------------------------------- |
@@ -1166,7 +1133,7 @@ They should not be used for detailed product-level return analysis.
 
 ---
 
-## 12. Modelling Implications
+### 12. Modelling Implications
 
 The validation results have direct impact on the mart layer.
 
@@ -1218,7 +1185,7 @@ Payments without matching orders should be kept in staging but excluded from the
 
 ---
 
-## 13. Final Decision
+### 13. Final Decision
 
 The validation checks show that the cleaned staging layer is mostly usable for modelling, but some relationship issues remain.
 
@@ -1235,17 +1202,3 @@ The main modelling approach is:
 This keeps the analysis honest while preserving useful business information.
 
 
-## Validation Summary
-
-| Issue type | Affected table | Affected rows | Business risk | Treatment decision |
-|---|---|---:|---|---|
-| Missing product reference | returns / order_items | TBD | Product-level sales or return analysis may be incomplete or misleading | Keep records, assign `product_key = -1`, add `missing_product_flag = TRUE` |
-| Ghost product ID | returns / order_items | TBD | Product ID exists in transaction data but not as a trusted product master record | Keep records, create `ghost_product_flag = TRUE`, map to unknown product unless confirmed |
-| Missing customer reference | orders | TBD | Customer segmentation, loyalty analysis, and retention analysis may be affected | Keep orders, assign `customer_key = -1`, add `missing_customer_flag = TRUE` |
-| Missing order reference | payments / returns | TBD | Payment or return cannot be fully linked to an original order | Keep records, assign `order_key = -1` or flag separately, add `missing_order_flag = TRUE` |
-| Duplicate key values | dimension source tables | TBD | Can break joins and create duplicated facts in analysis | Deduplicate before dimension creation using business rules |
-| Invalid or inconsistent date values | orders / returns / payments | TBD | Time-series analysis may be wrong | Convert valid dates, set invalid dates to `NULL`, add `invalid_date_flag = TRUE` |
-| Price inconsistency | products / order_items | TBD | Revenue, margin, and profitability analysis may be distorted | Do not auto-correct; keep value and add `price_issue_flag = TRUE` |
-| Missing optional attributes | customers / products | TBD | Some descriptive analysis may have unknown categories | Keep records, standardize missing values as `Unknown` where useful |
-| Issue type | Affected table | Affected rows | Business risk | Treatment decision |
-| Missing registration date | customers | 883 | Customer tenure, cohort analysis, and registration trend may be incomplete | Keep customer records, keep `registration_date` as `NULL`, add `missing_registration_date_flag = TRUE`, exclude from date-based customer analyses where needed |
