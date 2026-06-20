@@ -1,0 +1,14 @@
+# Data files (too large / sensitive for version control)
+data/raw/
+data/cleaned/
+
+# VS Code SQL extension scratch files
+*.session.sql
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.env
