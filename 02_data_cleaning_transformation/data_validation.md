@@ -319,12 +319,13 @@ FROM stg.stg_marketing_campaigns;
 | distinct_campaign_names                     | 14     |
 | distinct_campaign_channel_combinations      | 98     |
 
-**Interpretation** The result shows that `campaign_id` is unique for every row. Therefore, it does not represent a reusable campaign identifier, but rather a marketing touchpoint or interaction ID.
+**Interpretation:** The result shows that `campaign_id` is unique for every row. Therefore, it does not represent a reusable campaign identifier, but rather a marketing touchpoint or interaction ID.
 
 The actual campaign dimension is better represented by the combination of:
 
-
+```text
 campaign_name + channel
+```
 
 
 ### Severity
@@ -452,37 +453,7 @@ The main focus of this validation file is:
 
 ### 1. Referential Integrity Overview
 
-### Check purpose
-
-This check identifies records that cannot join to their related parent tables.
-
-For example:
-
-* `order_items` should match `orders`
-* `order_items` should match `products`
-* `orders` should match `customers`
-* `payments` should match `orders`
-* `returns` should match `orders`
-* `returns` should match `products`
-
-### Result
-
-| Issue                       | Issue Count |
-| --------------------------- | ----------: |
-| returns without product     |       1,835 |
-| returns without order       |          60 |
-| orders without customer     |         248 |
-| payments without order      |         220 |
-| order_items without product |         452 |
-| order_items without order   |           0 |
-
-### Interpretation
-
-Most staging relationships are valid, but some records still cannot join to their parent tables.
-
-The largest relationship issue is `returns without product`, followed by `order_items without product`, `orders without customer`, `payments without order`, and `returns without order`.
-
-These records were not deleted. They were preserved with flags in the staging layer and will be handled carefully in the mart layer.
+The referential integrity results are documented in **Section 3** (including the full SQL and methodology). The sub-sections below investigate each issue individually.
 
 ---
 
@@ -891,6 +862,10 @@ This affects analysis such as:
 ### Severity
 
 High
+
+### Decision
+
+See sections 9.7–9.10 for the full investigation (pattern check, frequency analysis, correction test) and final decision on how these records are handled.
 
 ---
 
