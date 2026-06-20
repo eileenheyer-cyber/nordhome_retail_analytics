@@ -157,6 +157,31 @@ FROM raw.raw_products
 GROUP BY discontinued_flag
 ORDER BY row_count DESC;
 
+-- 2.8 Price logic check — unit_cost greater than list_price (selling below cost)
+SELECT COUNT(*) AS products_with_price_issue
+FROM raw.raw_products
+WHERE unit_cost::NUMERIC > list_price::NUMERIC;
+
+-- 2.9 Inspect the products where unit_cost > list_price
+-- Root cause check: are these genuine pricing errors or zero list_price values?
+SELECT
+    product_id,
+    product_name,
+    category,
+    unit_cost::NUMERIC   AS unit_cost,
+    list_price::NUMERIC  AS list_price,
+    (unit_cost::NUMERIC - list_price::NUMERIC) AS cost_over_price
+FROM raw.raw_products
+WHERE unit_cost::NUMERIC > list_price::NUMERIC
+ORDER BY cost_over_price DESC;
+-- Result: all 6 products have list_price = 0.0 — missing price, not a genuine cost > price issue.
+
+-- 2.10 Zero list_price (expected: 6)
+SELECT COUNT(*) AS zero_list_price_count
+FROM raw.raw_products
+WHERE list_price::NUMERIC = 0;
+
+
 -- 2.7 launch_date format variety
 SELECT
     CASE
@@ -283,7 +308,12 @@ WHERE NOT EXISTS (
     SELECT 1 FROM raw.raw_orders o WHERE o.order_id = oi.order_id
 );
 
--- 4.6 Referential integrity — order_items with no matching product
+-- 4.6 Ghost product references in raw_order_items (product_id follows PROD-GHOST-* pattern, expected: ~452)
+SELECT COUNT(*) AS ghost_product_in_order_items
+FROM raw.raw_order_items
+WHERE product_id ILIKE '%GHOST%';
+
+-- 4.7 Referential integrity — order_items with no matching product
 SELECT COUNT(*) AS items_with_no_product
 FROM raw.raw_order_items oi
 WHERE NOT EXISTS (
@@ -420,7 +450,12 @@ WHERE NOT EXISTS (
     SELECT 1 FROM raw.raw_orders o WHERE o.order_id = r.order_id
 );
 
--- 6.8 Referential integrity — returns with no matching product
+-- 6.8 Ghost product references in raw_returns (product_id follows PROD-GHOST-* pattern, expected: ~1,835)
+SELECT COUNT(*) AS ghost_product_in_returns
+FROM raw.raw_returns
+WHERE product_id ILIKE '%GHOST%';
+
+-- 6.9 Referential integrity — returns with no matching product
 SELECT COUNT(*) AS returns_with_no_product
 FROM raw.raw_returns r
 WHERE NOT EXISTS (

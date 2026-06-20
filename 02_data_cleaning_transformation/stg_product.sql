@@ -1,25 +1,22 @@
 /*
 Product Table Cleaning
 
-The raw product table is cleaned and stored as stg.product.
+The raw product table is cleaned and stored as stg.stg_products.
 
 Cleaning steps:
 - Trim text fields
-- Fill missing category values from subcategory when possible
+- Fill missing category values from subcategory when possible (36 products had NULL category)
 - Convert unit_cost and list_price from text to NUMERIC
-- Convert launch_date from text to DATE
-- Convert discontinued_flag from text to BOOLEAN
-- Add price_issue_flag for products where list_price < unit_cost
+- Convert launch_date from text to DATE (all rows use YYYY-MM-DD in raw data)
+- Convert discontinued_flag from text to BOOLEAN (only Y/N values found in raw data)
+- Set list_price to NULL where list_price = 0 (treated as missing, not a valid price)
+- Add price_issue_flag for products where list_price was 0 or list_price < unit_cost
+- Add missing_category_flag for products where category is still NULL after inference
 
-Note:
-Only a small number of products had a list_price lower than unit_cost.
-These records were not removed or automatically corrected because it is unclear
-whether the cost or price value is incorrect. Instead, a price_issue_flag was created
-so that these products can be identified and optionally excluded from margin-related analysis.
-
-The product table cleaning is split into CTE steps because prices, dates, categories,
-and price_issue_flag depend on earlier cleaned and converted values.
-This makes the logic safer and easier to debug.
+Raw data findings:
+- 36 products had NULL category — inferred from subcategory where mapping is clear
+- 6 products had list_price = 0.0 — root cause is missing price, not a cost logic error
+- No duplicate product_ids, no missing prices/costs, no format issues
 */
 
 CREATE SCHEMA IF NOT EXISTS stg;
@@ -98,8 +95,11 @@ converted_values AS (
             ELSE NULL
         END AS unit_cost,
 
+        -- Zero prices set to NULL (missing data, not a valid price).
+        -- price_issue_flag documents which rows were affected.
         CASE
             WHEN list_price_raw ~ '^[0-9]+(\.[0-9]+)?$'
+                 AND list_price_raw::NUMERIC > 0
                 THEN list_price_raw::NUMERIC(10,2)
             ELSE NULL
         END AS list_price,
@@ -121,7 +121,23 @@ converted_values AS (
             WHEN UPPER(discontinued_flag_raw) IN ('Y', 'YES', 'TRUE', '1') THEN TRUE
             WHEN UPPER(discontinued_flag_raw) IN ('N', 'NO', 'FALSE', '0') THEN FALSE
             ELSE NULL
-        END AS discontinued_flag
+        END AS discontinued_flag,
+
+        -- Computed here while raw values are still accessible.
+        -- list_price is set to NULL for zero prices in the step above, so the flag
+        -- must be derived from list_price_raw before the zero becomes NULL.
+        --
+        -- The regex '^[0-9]+(\.[0-9]+)?$' validates that the raw text is a safe number
+        -- before casting — prevents a runtime error if the value is empty, NULL, or non-numeric.
+        CASE
+            WHEN list_price_raw ~ '^[0-9]+(\.[0-9]+)?$'
+                 AND list_price_raw::NUMERIC = 0 THEN TRUE
+            WHEN list_price_raw ~ '^[0-9]+(\.[0-9]+)?$'
+                 AND unit_cost_raw ~ '^[0-9]+(\.[0-9]+)?$'
+                 AND list_price_raw::NUMERIC > 0
+                 AND list_price_raw::NUMERIC < unit_cost_raw::NUMERIC THEN TRUE
+            ELSE FALSE
+        END AS price_issue_flag
 
     FROM standardized_category
 ),
@@ -137,16 +153,10 @@ final AS (
         list_price,
         launch_date,
         discontinued_flag,
+        price_issue_flag,
 
-        -- Flag products where the selling price is lower than the cost.
-        -- Values are kept unchanged because it is unclear which value is incorrect.
-        CASE
-            WHEN unit_cost IS NOT NULL
-                 AND list_price IS NOT NULL
-                 AND list_price < unit_cost
-                THEN TRUE
-            ELSE FALSE
-        END AS price_issue_flag
+        -- Flag products where category is still NULL after subcategory inference.
+        category IS NULL AS missing_category_flag
 
     FROM converted_values
 )

@@ -10,7 +10,24 @@ The goal is to make sure that business metrics such as revenue, order value, ret
 
 ## 2. Business Context
 
-Nordhome Retail is a fictional retail/e-commerce business.
+Nordhome Retail is a fictional pan-European e-commerce retailer selling home décor, kitchen, beauty, lifestyle, and gift products.
+
+The dataset covers 10 European markets:
+
+| Market | ISO code |
+|---|---|
+| Germany | DE |
+| Austria | AT |
+| Switzerland | CH |
+| France | FR |
+| Netherlands | NL |
+| Belgium | BE |
+| Sweden | SE |
+| Denmark | DK |
+| Norway | NO |
+| Poland | PL |
+
+The dataset spans January 2021 to June 2024 and contains approximately 166,000 rows with intentional data quality issues for cleaning and analysis practice.
 
 The dataset represents typical retail processes:
 
@@ -19,7 +36,6 @@ The dataset represents typical retail processes:
 * orders containing one or more order items
 * payments being made for orders
 * products being returned
-* stores or sales locations being used for transactions
 
 The business focus of this project is to analyze sales performance, customer behavior, product performance, returns, and potential revenue loss.
 
@@ -389,4 +405,4 @@ Dashboard users should be aware that:
 
 | Date       | Change                                     |
 | ---------- | ------------------------------------------ |
-| YYYY-MM-DD | Initial business metadata document created |
+| 2026-06-20 | Added market list (10 European markets, confirmed Poland not Finland); updated business context |

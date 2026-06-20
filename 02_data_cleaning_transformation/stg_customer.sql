@@ -7,7 +7,7 @@ Cleaning steps:
 - Validate email format with regex, set invalid values to NULL
 - Map country codes to country names (10 European markets)
 - Parse registration_date from multiple text formats to DATE
-- Convert birth_year from text/decimal to integer
+- Convert birth_year from text/decimal to integer; values outside 1920–2006 set to NULL
 - Normalize loyalty_member to boolean
 - Deduplicate on customer_id, keeping latest valid registration date
 */
@@ -73,13 +73,13 @@ WITH standardized AS (
             ELSE NULL
         END AS registration_date,
 
-        CASE 
-            WHEN birth_year IS NULL OR TRIM(birth_year) = ''
-                THEN NULL
-            WHEN TRIM(birth_year) ~ '^\d{4}\.0$'
-                THEN CAST(REPLACE(TRIM(birth_year), '.0', '') AS INT)
-            WHEN TRIM(birth_year) ~ '^\d{4}$'
-                THEN CAST(TRIM(birth_year) AS INT)
+        -- Raw values stored as YYYY.0 (CSV float export issue) — strip suffix and cast to INT.
+        -- Range 1920–2006: excludes impossible values found in raw data (1800, 1890, 2020, 2025).
+        CASE
+            WHEN birth_year IS NULL OR TRIM(birth_year) = '' THEN NULL
+            WHEN TRIM(birth_year) ~ '^\d{4}(\.0)?$'
+                AND REPLACE(TRIM(birth_year), '.0', '')::INT BETWEEN 1920 AND 2006
+                THEN REPLACE(TRIM(birth_year), '.0', '')::INT
             ELSE NULL
         END AS birth_year,
 

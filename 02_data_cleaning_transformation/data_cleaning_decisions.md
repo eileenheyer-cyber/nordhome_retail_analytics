@@ -60,17 +60,73 @@ FROM stg.stg_customers;
 | Prices stored as text            | Convert `unit_cost` and `list_price` to `NUMERIC`. Invalid values become `NULL`.                            | Prices must be numeric for revenue, margin, and Power BI measures.    |
 | Launch date stored as text       | Convert `launch_date` to `DATE`. Invalid dates become `NULL`.                                               | Dates must be real date fields for time analysis.                     |
 | Discontinued flag stored as text | Convert `Y/N`, `Yes/No`, `1/0` into `TRUE/FALSE`.                                                           | This should be Boolean, not text.                                     |
-| `list_price < unit_cost`         | Do **not** auto-correct. Keep the values, but create a flag like `price_issue_flag = TRUE`.                 | You do not know which value is wrong. Better to document and flag it. |
+| `list_price = 0` (6 products)    | Root cause is missing price, not a cost logic error. Set `list_price` to NULL and flag with `price_issue_flag = TRUE`. | Zero is not a valid selling price. NULL is safer than 0 in margin and price calculations. |
+| `list_price < unit_cost`         | Covered by `price_issue_flag` after zero prices are set to NULL. No auto-correction.                               | Cannot determine which value is wrong without business input.         |
 
 **cleaning decisions**
 
 | Column / Issue                      | Severity | Cleaning decision                                                                                                                                              |
 | ----------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Missing values in `category`        | Medium   | Fill missing `category` values from `subcategory` when the mapping is clear. If no reliable mapping is possible, keep the value as `NULL`.                     |
+| Missing values in `category`        | Medium   | Fill missing `category` values from `subcategory` when the mapping is clear. If no reliable mapping is possible, keep the value as `NULL` and add `missing_category_flag`. |
 | `unit_cost` stored as text          | High     | Convert `unit_cost` into `NUMERIC(10,2)`. Empty or invalid values are set to `NULL`.                                                                           |
-| `list_price` stored as text         | High     | Convert `list_price` into `NUMERIC(10,2)`. Empty or invalid values are set to `NULL`.                                                                          |
-| `launch_date` stored as text        | High     | Convert `launch_date` into proper `DATE` format. Invalid or empty dates are set to `NULL`.                                                                     |
-| `list_price` lower than `unit_cost` | High     | Do not automatically correct the price values. Keep the original values and create a `price_issue_flag` to identify products with possible price logic issues. |
+| `list_price` stored as text         | High     | Convert `list_price` into `NUMERIC(10,2)`. Zero and invalid values are set to `NULL`.                                                                          |
+| `list_price = 0` (6 products)       | High     | Set to `NULL` — zero is not a valid selling price. Flag with `price_issue_flag = TRUE` to document why the value is NULL.                                      |
+| `list_price` lower than `unit_cost` | High     | Keep both values unchanged. Flag with `price_issue_flag = TRUE`. Do not auto-correct because it is unclear which value is wrong.                               |
+| `launch_date` stored as text        | Low      | Convert `launch_date` into proper `DATE` format. All 1,090 rows use YYYY-MM-DD in raw data — no format issues found.                                          |
+| `discontinued_flag` stored as text  | Low      | Convert `Y`/`N` to `TRUE`/`FALSE`. Raw data only contains Y and N — no inconsistencies found.                                                                  |
+| `missing_category_flag`             | Medium   | Add flag when category is still NULL after subcategory inference. Affects products that could not be mapped to any category.                                    |
+
+**impact on analysis**
+
+Setting `list_price = NULL` for the 6 zero-price products affects the following:
+
+| Analysis | Effect |
+| --- | --- |
+| Revenue (`order_items.unit_price * quantity`) | Not affected — revenue uses transaction price, not product list price |
+| Margin (`list_price - unit_cost`) | Returns NULL for these 6 products — excluded from margin calculations automatically |
+| Average list price by category | These 6 products excluded from AVG() — NULL is ignored by SQL aggregations |
+| Price distribution / catalog analysis | 6 fewer products in any price range analysis |
+| Power BI price measures | Will show BLANK for these products — correct behaviour |
+
+Keeping `list_price = 0` would be worse: a zero selling price in margin calculations produces a misleading large negative margin. NULL correctly signals missing data and is handled gracefully by all SQL aggregations.
+
+
+## orders table
+
+**data quality issues**
+
+| Issue | What you should do | Why |
+|---|---|---|
+| Duplicate order_ids (all appear exactly twice) | Deduplicate using `ROW_NUMBER()`, keep one row per `order_id`. Add `duplicate_order_id_flag` before deduplication so the issue is documented. | Duplicate orders would inflate order counts, AOV, and revenue. |
+| `order_date` stored as text in 3 formats | Parse all 3 formats (`YYYY-MM-DD`, `DD/MM/YYYY`, `MM-DD-YYYY`) to `DATE`. Invalid dates become `NULL`. | Date is required for time-series, trend, and cohort analysis. |
+| 496 orders with no matching customer_id | Keep orders, flag with `ghost_customer_flag = TRUE`. Map to `customer_key = -1` in the mart. | Orders still contain valid transaction data even without a matched customer. |
+| Country spelling variants | Apply same country mapping as `stg_customers`. | Consistent country values are needed for geographic analysis. |
+| Cancelled / Refunded / Returned order statuses | Do not remove these rows. Document in business rules that they should be excluded from revenue analysis. | Removing them silently would break return-rate and cancellation-rate analysis. |
+
+**cleaning decisions**
+
+| Column / Issue | Severity | Cleaning decision |
+|---|---|---|
+| Duplicate `order_id` values | High | Flag all rows where `order_id` appears more than once with `duplicate_order_id_flag = TRUE`. Deduplicate using `ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY order_date ASC NULLS LAST)` and keep `row_num = 1`. |
+| `order_date` stored as text | High | Parse `YYYY-MM-DD`, `DD/MM/YYYY`, and `MM-DD-YYYY` to `DATE`. Unrecognised formats become `NULL`. All 31,465 rows matched one of the 3 formats — no NULL dates expected. |
+| Ghost customer references (496 rows) | Medium | Keep all orders. Add `ghost_customer_flag = TRUE` where `customer_id` does not exist in `raw_customers`. These orders will receive `customer_key = -1` in the mart. |
+| `country` spelling variants | Medium | Apply same mapping as `stg_customers`: ISO code, local name, and English name all map to a single canonical English name. |
+| `order_status` values | Low | No cleaning needed. 6 clean values found: `Completed`, `Shipped`, `Processing`, `Cancelled`, `Refunded`, `Returned`. |
+| `sales_channel` values | Low | Trim and standardise. No missing values found. |
+| `shipping_method` values | Low | Trim and standardise. No missing values found. |
+
+**business rule — order status and revenue**
+
+Not all order statuses represent completed sales. Downstream analysis must apply this filter:
+
+| Status | Include in revenue? | Notes |
+|---|---|---|
+| Completed | Yes | Fulfilled sale |
+| Shipped | Yes | In transit — treat as revenue |
+| Processing | Yes | In progress — treat as revenue |
+| Cancelled | No | Order was cancelled before fulfilment |
+| Refunded | No | Payment was returned to customer |
+| Returned | No | Product was returned — use return table instead |
 
 
 ## order_items table
