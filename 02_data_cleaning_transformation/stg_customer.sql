@@ -118,4 +118,4 @@ FROM deduplicated
 WHERE row_num = 1;
 
 SELECT count(*)
-FROM staging.stg_customers
+FROM stg.stg_customers

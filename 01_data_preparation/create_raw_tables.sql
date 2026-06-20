@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS raw.raw_order_items (
 );
 
 CREATE TABLE IF NOT EXISTS raw.raw_payments (
-    payment_id TEXT,s
+    payment_id TEXT,
     order_id TEXT,
     payment_method TEXT,
     payment_status TEXT,

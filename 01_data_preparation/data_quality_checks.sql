@@ -31,7 +31,7 @@ customer_id,
 count (*) as duplicate_count
 from raw.raw_customers
 group by customer_id
-having count (*) >= 1
+having count (*) > 1
 order by duplicate_count DESC
 
  --5. check missing values in important columns

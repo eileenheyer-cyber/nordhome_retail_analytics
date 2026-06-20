@@ -24,7 +24,7 @@ This makes the logic safer and easier to debug.
 
 CREATE SCHEMA IF NOT EXISTS stg;
 
-DROP TABLE IF EXISTS stag.stg_prducts;
+DROP TABLE IF EXISTS stg.stg_products;
 
 CREATE TABLE stg.stg_products AS
 

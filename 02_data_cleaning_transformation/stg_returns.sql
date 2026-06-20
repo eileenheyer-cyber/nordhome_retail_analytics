@@ -59,7 +59,7 @@ converted_values AS (
 ),
 
 flagged_values AS (
-    SELECT.  -- prepares the returns table for duplicate checks and relationship checks.
+    SELECT  -- prepares the returns table for duplicate checks and relationship checks.
         r.*,
         o.order_date,
         o.order_id IS NOT NULL AS order_exists,
