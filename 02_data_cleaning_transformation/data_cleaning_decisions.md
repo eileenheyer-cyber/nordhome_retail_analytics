@@ -33,21 +33,6 @@
 | `loyalty_member` variants          | High     | Convert true-like values (`true`, `t`, `yes`, `y`, `1`) to `TRUE` and false-like values (`false`, `f`, `no`, `n`, `0`) to `FALSE`. |
 | Duplicate `customer_id` values     | High     | Use `ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY registration_date DESC NULLS LAST)` and keep `row_num = 1`.                |
 
-**validation query**
-
-Run this after creating `stg.stg_customers` to confirm which customer issues remain after cleaning.
-
-```sql
-SELECT
-    COUNT(*) AS total_rows,
-    COUNT(*) FILTER (WHERE customer_id IS NULL) AS missing_customer_id_count,
-    COUNT(*) FILTER (WHERE email IS NULL) AS missing_or_invalid_email_count,
-    COUNT(*) FILTER (WHERE phone IS NULL) AS missing_phone_count,
-    COUNT(*) FILTER (WHERE registration_date IS NULL) AS invalid_registration_date_count,
-    COUNT(*) FILTER (WHERE birth_year IS NULL) AS missing_or_invalid_birth_year_count,
-    COUNT(*) FILTER (WHERE loyalty_member IS NULL) AS invalid_loyalty_member_count
-FROM stg.stg_customers;
-```
 
 
 ## product table
@@ -162,19 +147,16 @@ Not all order statuses represent completed sales. Downstream analysis must apply
 
 **validation results**
 
-After creating `staging.stg_order_items`, the issue flags were counted to confirm which suspected data quality issues actually exist.
-
-| Flag column                   | True count | Interpretation                                                                 |
-| ----------------------------- | ---------- | ------------------------------------------------------------------------------ |
-| `invalid_quantity_flag`       | 0          | No invalid quantity formats were found. No correction needed.                  |
-| `negative_quantity_flag`      | 379        | Negative quantities exist and were cleaned using `ABS(quantity_original)`.     |
-| `extreme_quantity_flag`       | 228        | Extreme quantities exist and were capped in `quantity_capped`.                 |
-| `invalid_unit_price_flag`     | 0          | No invalid unit price formats were found. No correction needed.                |
-| `zero_unit_price_flag`        | 241        | Zero unit prices exist and were kept with a flag for review.                   |
-| `invalid_discount_flag`       | 0          | No invalid discount formats were found. No correction needed.                  |
-| `discount_range_issue_flag`   | 299        | Discounts below 0 or above 1 exist and were capped into the valid range.       |
+| Flag column                   | True count | Interpretation                                                                  |
+| ----------------------------- | ---------- | ------------------------------------------------------------------------------- |
+| `invalid_quantity_flag`       | 0          | No invalid quantity formats were found. No correction needed.                   |
+| `negative_quantity_flag`      | 379        | Negative quantities exist and were cleaned using `ABS(quantity_original)`.      |
+| `extreme_quantity_flag`       | 228        | Extreme quantities exist and were capped in `quantity_capped`.                  |
+| `invalid_unit_price_flag`     | 0          | No invalid unit price formats were found. No correction needed.                 |
+| `zero_unit_price_flag`        | 241        | Zero unit prices exist and were kept with a flag for review.                    |
+| `invalid_discount_flag`       | 0          | No invalid discount formats were found. No correction needed.                   |
+| `discount_range_issue_flag`   | 299        | Discounts below 0 or above 1 exist and were capped into the valid range.        |
 | `ghost_product_flag`          | 452        | Some order items reference product IDs that may not exist in the product table. |
-
 
 
 
@@ -207,8 +189,6 @@ After creating `staging.stg_order_items`, the issue flags were counted to confir
 | `converted = 1` and `clicked = 0` | Medium   | Keep the row, but flag it with `converted_without_click_flag` for attribution review.                                           |
 
 **validation results**
-
-After creating `stg.stg_marketing_campaigns`, the issue flags were counted to confirm which suspected data quality issues actually exist.
 
 | Flag column                     | True count | Interpretation                                                       |
 | ------------------------------- | ---------- | -------------------------------------------------------------------- |
