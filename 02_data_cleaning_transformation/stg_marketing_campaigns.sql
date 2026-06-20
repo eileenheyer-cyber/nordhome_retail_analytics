@@ -3,12 +3,21 @@ Marketing Campaigns Table Cleaning
 
 The raw marketing campaigns table is cleaned and stored as stg.stg_marketing_campaigns.
 
+Raw data findings:
+- 12,000 rows, 0 duplicate campaign_ids
+- 0 missing values in any column — cleanest table in the dataset
+- 7 channels, all clean values, no spelling variants
+- 3 date formats, all 12,000 rows accounted for — no NULL dates expected
+- clicked/converted: (0,0)=8,381 / (1,0)=2,886 / (1,1)=733 — no conversions without clicks ✓
+- 0 ghost customer references
+
 Cleaning steps:
 - Trim text fields
-- Convert campaign_date from text to DATE
-- Convert clicked and converted from text to INTEGER flags
-- Standardize campaign name and channel text
-- Add issue flags for missing keys, invalid dates, invalid flag values, and ghost customer references
+- Standardize channel values to 7 canonical names
+- Convert campaign_date from text to DATE (3 formats)
+- Convert clicked and converted from text to INTEGER flags (only '0' and '1' are valid)
+- Deduplicate on marketing_touchpoint_id + customer_id + campaign_date — keep row with highest converted, then clicked
+- Add issue flags for missing keys, invalid dates, invalid flag values, ghost customer references, and conversions without clicks
 */
 
 CREATE SCHEMA IF NOT EXISTS stg;

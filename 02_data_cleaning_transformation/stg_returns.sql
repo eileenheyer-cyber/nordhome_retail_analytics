@@ -3,14 +3,27 @@ Returns Table Cleaning
 
 The raw returns table is cleaned and stored as stg.stg_returns.
 
+Raw data findings:
+- 6,097 rows, 0 duplicate return_ids
+- 0 missing values except return_reason (634 rows, 10.4%) — filled with 'Not Provided'
+- 8 clean return reason categories, no casing variants
+- 3 date formats, all 6,097 rows accounted for — no NULL dates expected
+- 0 non-numeric refund amounts, 22 negative — corrected with ABS()
+- 1,835 ghost product references (30.10%) — PROD-GHOST-* pattern, intentional dirty records
+- 60 ghost order references — regular-looking IDs missing from raw_orders master
+- 105 returns before order date — flagged for business review
+
 Cleaning steps:
 - Trim text fields
-- Convert return_date from text to DATE
+- Convert return_date from text to DATE (3 formats)
 - Convert refund_amount from text to NUMERIC
-- Standardize missing return reasons
-- Fix negative refund amounts using ABS()
-- Identify duplicate return IDs and keep one row per return_id
-- Add issue flags for missing keys, invalid dates, invalid amounts, ghost references, and returns before order date
+- Map missing return_reason to 'Not Provided', flag with missing_return_reason_flag
+- Fix negative refund amounts using ABS(), keep original in refund_amount_original
+- Flag ghost product references using LIKE '%GHOST%' (product IDs literally contain PROD-GHOST-*)
+- Flag ghost order references using NOT EXISTS against raw_orders (regular-looking IDs missing from master)
+- Flag unmatched order/product IDs by joining to stg_orders and stg_products
+- Flag returns before order date
+- Deduplicate on return_id — keep earliest return_date (no duplicates found, flag kept as documentation)
 */
 
 CREATE SCHEMA IF NOT EXISTS stg;
@@ -65,9 +78,10 @@ flagged_values AS (
         o.order_id IS NOT NULL AS order_exists,
         p.product_id IS NOT NULL AS product_exists,
         COUNT(*) OVER (PARTITION BY r.return_id) AS return_id_record_count,
+        -- ASC keeps the earliest return_date — first recorded occurrence treated as the original.
         ROW_NUMBER() OVER (
             PARTITION BY r.return_id
-            ORDER BY r.return_date DESC NULLS LAST
+            ORDER BY r.return_date ASC NULLS LAST
         ) AS row_num
     FROM converted_values AS r
     LEFT JOIN stg.stg_orders AS o
@@ -92,7 +106,13 @@ final AS (
         return_id_record_count > 1 AS duplicate_return_id_flag,
         order_id IS NULL AS missing_order_id_flag,
         product_id IS NULL AS missing_product_id_flag,
-        COALESCE(order_id LIKE '%GHOST%', FALSE) AS ghost_order_flag,
+        -- Ghost order: return exists but order_id is not found in raw_orders.
+        -- These are regular-looking IDs missing from the order master — not IDs containing "GHOST".
+        NOT EXISTS (
+            SELECT 1 FROM raw.raw_orders ro
+            WHERE TRIM(ro.order_id) = order_id
+        ) AS ghost_order_flag,
+        -- Ghost product: product_id literally contains PROD-GHOST-* — intentional dirty records.
         COALESCE(product_id LIKE '%GHOST%', FALSE) AS ghost_product_flag,
         COALESCE(order_id IS NOT NULL AND order_exists = FALSE, FALSE) AS unmatched_order_flag,
         COALESCE(product_id IS NOT NULL AND product_exists = FALSE, FALSE) AS unmatched_product_flag,
@@ -108,26 +128,3 @@ final AS (
 
 SELECT *
 FROM final;
-
-/*
-Validation query
-
-Run the full CREATE TABLE statement above first, then run this query.
-
-SELECT
-    COUNT(*) AS total_rows,
-    COUNT(*) FILTER (WHERE duplicate_return_id_flag = TRUE) AS duplicate_return_id_count,
-    COUNT(*) FILTER (WHERE missing_order_id_flag = TRUE) AS missing_order_id_count,
-    COUNT(*) FILTER (WHERE missing_product_id_flag = TRUE) AS missing_product_id_count,
-    COUNT(*) FILTER (WHERE ghost_order_flag = TRUE) AS ghost_order_count,
-    COUNT(*) FILTER (WHERE ghost_product_flag = TRUE) AS ghost_product_count,
-    COUNT(*) FILTER (WHERE unmatched_order_flag = TRUE) AS unmatched_order_count,
-    COUNT(*) FILTER (WHERE unmatched_product_flag = TRUE) AS unmatched_product_count,
-    COUNT(*) FILTER (WHERE invalid_return_date_flag = TRUE) AS invalid_return_date_count,
-    COUNT(*) FILTER (WHERE missing_return_reason_flag = TRUE) AS missing_return_reason_count,
-    COUNT(*) FILTER (WHERE invalid_refund_amount_flag = TRUE) AS invalid_refund_amount_count,
-    COUNT(*) FILTER (WHERE negative_refund_amount_flag = TRUE) AS negative_refund_amount_count,
-    COUNT(*) FILTER (WHERE return_before_order_flag = TRUE) AS return_before_order_count
-FROM stg.stg_returns;
-
-*/

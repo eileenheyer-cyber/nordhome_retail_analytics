@@ -5,12 +5,19 @@ The raw payments table is cleaned and stored as stg.stg_payments.
 
 Cleaning steps:
 - Trim text fields
-- Standardize payment method values
-- Standardize payment status values
-- Convert payment_date from text to DATE
+- Map ~18 payment_method spelling variants to 7 canonical values
+- Parse payment_date from 3 text formats (YYYY-MM-DD, MM-DD-YYYY, DD/MM/YYYY) to DATE
 - Convert payment_amount from text to NUMERIC
-- Identify duplicate payment IDs and keep one row per payment_id
-- Add issue flags for missing keys, invalid dates, invalid amounts, ghost order references, and payments before order date
+- Deduplicate on payment_id — keep earliest payment_date (first recorded occurrence)
+- Flag duplicates, missing payment methods, ghost order references, and payments before order date
+
+Raw data findings:
+- 31,936 rows, 471 extra duplicate rows (all appear exactly twice)
+- 1,930 missing payment_method (6.05%) — kept as NULL, cannot be inferred
+- 7 real payment methods with ~18 spelling variants in raw data
+- 3 date formats, all 31,936 rows accounted for — no NULL dates expected
+- 0 non-numeric or negative payment amounts
+- 440 payments with no matching order in raw_orders (ghost order references)
 */
 
 CREATE SCHEMA IF NOT EXISTS stg;
@@ -87,9 +94,10 @@ flagged_values AS (
         p.*,
         o.order_date,
         COUNT(*) OVER (PARTITION BY p.payment_id) AS payment_id_record_count,
+        -- ASC keeps the earliest payment_date — first recorded occurrence treated as the original.
         ROW_NUMBER() OVER (
             PARTITION BY p.payment_id
-            ORDER BY p.payment_date DESC NULLS LAST
+            ORDER BY p.payment_date ASC NULLS LAST
         ) AS row_num
     FROM converted_values AS p
     LEFT JOIN stg.stg_orders AS o
@@ -108,7 +116,13 @@ final AS (
 
         payment_id_record_count > 1 AS duplicate_payment_id_flag,
         order_id IS NULL AS missing_order_id_flag,
-        COALESCE(order_id LIKE '%GHOST%', FALSE) AS ghost_order_flag,
+
+        -- Ghost order: payment exists but order_id is not found in raw_orders.
+        -- These are regular-looking IDs missing from the order master — not IDs containing "GHOST".
+        NOT EXISTS (
+            SELECT 1 FROM raw.raw_orders ro
+            WHERE TRIM(ro.order_id) = order_id
+        ) AS ghost_order_flag,
 
         payment_method IS NULL AS missing_payment_method_flag,
 
@@ -147,17 +161,3 @@ final AS (
 
 SELECT *
 FROM final;
-
-SELECT
-    COUNT(*) AS total_rows,
-    COUNT(*) FILTER (WHERE duplicate_payment_id_flag = TRUE) AS duplicate_payment_id_count,
-    COUNT(*) FILTER (WHERE missing_order_id_flag = TRUE) AS missing_order_id_count,
-    COUNT(*) FILTER (WHERE ghost_order_flag = TRUE) AS ghost_order_count,
-    COUNT(*) FILTER (WHERE missing_payment_method_flag = TRUE) AS missing_payment_method_count,
-    COUNT(*) FILTER (WHERE invalid_payment_method_flag = TRUE) AS invalid_payment_method_count,
-    COUNT(*) FILTER (WHERE invalid_payment_status_flag = TRUE) AS invalid_payment_status_count,
-    COUNT(*) FILTER (WHERE invalid_payment_date_flag = TRUE) AS invalid_payment_date_count,
-    COUNT(*) FILTER (WHERE invalid_payment_amount_flag = TRUE) AS invalid_payment_amount_count,
-    COUNT(*) FILTER (WHERE negative_payment_amount_flag = TRUE) AS negative_payment_amount_count,
-    COUNT(*) FILTER (WHERE payment_before_order_flag = TRUE) AS payment_before_order_count
-FROM stg.stg_payments;

@@ -182,7 +182,7 @@ FROM raw.raw_products
 WHERE list_price::NUMERIC = 0;
 
 
--- 2.7 launch_date format variety
+-- 2.11 launch_date format variety
 SELECT
     CASE
         WHEN launch_date ~ '^\d{4}-\d{2}-\d{2}$' THEN 'YYYY-MM-DD'
@@ -329,14 +329,9 @@ WHERE NOT EXISTS (
 SELECT COUNT(*) AS total_rows
 FROM raw.raw_payments;
 
--- 5.2 Duplicate payment_id (expected: some duplicates — documented data issue)
-SELECT
-    payment_id,
-    COUNT(*) AS duplicate_count
-FROM raw.raw_payments
-GROUP BY payment_id
-HAVING COUNT(*) > 1
-ORDER BY duplicate_count DESC;
+-- 5.2 Total extra (duplicate) rows in raw_payments — rows above the one we would keep after deduplication
+SELECT COUNT(*) - COUNT(DISTINCT payment_id) AS extra_duplicate_rows
+FROM raw.raw_payments;
 
 -- 5.3 Missing values in key columns
 SELECT

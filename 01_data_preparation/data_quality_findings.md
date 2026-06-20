@@ -13,10 +13,10 @@ Results from running `data_quality_checks.sql` against all 7 raw tables before a
 | raw_customers | 8,364 | Invalid emails, mixed date formats, inconsistent loyalty values | High |
 | raw_products | — | Missing categories, text prices, text dates | High |
 | raw_orders | 31,465 | Duplicate order_ids (all appear exactly twice), 496 ghost customer references | High |
-| raw_order_items | — | 379 negative quantities, 452 ghost products, 241 zero prices | High |
-| raw_payments | — | 471 duplicate payment IDs, 1,901 missing payment methods | High |
-| raw_returns | — | 1,835 ghost products (30.10%), 105 returns before order date | High |
-| raw_marketing_campaigns | — | No critical issues found | Low |
+| raw_order_items | 75,473 | 379 negative quantities, 241 zero unit prices, 299 discounts out of range, 452 ghost product references | High |
+| raw_payments | 31,936 | 471 extra duplicate rows, 1,930 missing payment_method, 7 methods with ~18 spelling variants, 440 payments with no matching order | High |
+| raw_returns | 6,097 | 1,835 ghost products (30.10%), 60 ghost orders, 22 negative refunds, 105 returns before order date | High |
+| raw_marketing_campaigns | 12,000 | No critical issues found | Low |
 
 > `—` = run check to get exact count
 
@@ -283,65 +283,98 @@ Three formats present. All 31,465 rows accounted for — no unrecognised formats
 
 ## 4. raw_order_items
 
-**Row count:** run check 4.1
+**Row count:** 75,473
 
-**Missing values:** run check 4.3
+**Duplicate order_item_id:** 0 — no duplicates found ✓
+
+**Missing values**
+
+All columns complete — no missing values found in any column.
+
+| Column | Missing count |
+|---|---|
+| order_item_id | 0 ✓ |
+| order_id | 0 ✓ |
+| product_id | 0 ✓ |
+| quantity | 0 ✓ |
+| unit_price | 0 ✓ |
+| discount | 0 ✓ |
+| line_total | 0 ✓ |
 
 **Numeric field issues**
 
+All numeric fields are valid formats — issues are with the values, not the format.
+
+| Issue | Count | Notes |
+|---|---|---|
+| Non-numeric quantity | 0 ✓ | All values are valid numbers |
+| Negative quantity | 379 | Business logic violation |
+| Zero quantity | 0 ✓ | No zero quantities |
+| Non-numeric unit_price | 0 ✓ | All values are valid numbers |
+| Zero unit_price | 241 | Missing price — same treatment as list_price = 0 in products |
+| Non-numeric discount | 0 ✓ | All values are valid numbers |
+| Discount out of range (not 0–1) | 299 | Values outside valid 0%–100% range |
+
+**Referential integrity**
+
 | Issue | Count |
 |---|---|
-| Negative quantity | 379 |
-| Extreme quantity (> 99) | 228 |
-| Zero unit_price | 241 |
-| Discount out of range (not 0–1) | 299 |
-| Invalid quantity format | 0 ✓ |
-| Invalid unit_price format | 0 ✓ |
-| Invalid discount format | 0 ✓ |
+| Items with no matching order | 0 ✓ |
+| Items with no matching product | 452 |
 
 **Ghost product references**
 
+All 452 items with no matching product follow the `PROD-GHOST-*` pattern — confirmed by check 4.6. There are no other types of missing product references in this table.
+
 | Issue | Count | % of rows |
 |---|---|---|
-| product_id not found in raw_products | 452 | 0.60% |
-
-**Referential integrity — order_items with no matching order:** run check 4.5
+| Ghost product_id (PROD-GHOST-* pattern) | 452 | 0.60% |
 
 ---
 
 ## 5. raw_payments
 
-**Row count:** run check 5.1
-
-**Missing values**
-
-| Column | Missing count |
-|---|---|
-| payment_id | run check 5.3 |
-| order_id | run check 5.3 |
-| payment_method | 1,901 |
-| payment_status | run check 5.3 |
-| payment_date | run check 5.3 |
-| payment_amount | run check 5.3 |
+**Row count:** 31,936
 
 **Duplicate payment_id**
 
-| Issue | Count |
-|---|---|
-| Duplicate payment IDs | 471 |
+471 extra rows — rows above the one kept after deduplication. All visible duplicates show count of exactly 2, consistent with raw_orders pattern.
 
-**Ghost order references**
+**Missing values**
 
-| Issue | Count |
-|---|---|
-| order_id not matching raw_orders | 220 |
+| Column | Missing count | Notes |
+|---|---|---|
+| payment_id | 0 ✓ | Clean |
+| order_id | 0 ✓ | Clean |
+| payment_method | 1,930 | 6.05% of rows — largest missing value issue in this table |
+| payment_status | 0 ✓ | Clean |
+| payment_date | 0 ✓ | Clean |
+| payment_amount | 0 ✓ | Clean |
 
 **payment_method value distribution**
 
-Multiple spellings found for the same method (e.g. `CC`, `creditcard`, `card`).
-Exact distribution: run check 5.4.
+7 real payment methods represented by ~18 different spellings, casing, and format variants. 1,930 NULLs in addition.
 
-**payment_date format variety:** run check 5.5
+| Canonical method | Raw variants | Approx. count |
+|---|---|---|
+| Credit Card | CC, Credit Card, creditcard, card | ~7,118 |
+| Bank Transfer | BankTransfer, Bank Transfer, bank transfer | ~5,262 |
+| Debit Card | debit, Debit Card, Debit | ~5,319 |
+| PayPal | PAYPAL, paypal, PayPal | ~5,252 |
+| Apple Pay | Apple Pay, applepay | ~3,495 |
+| Buy Now Pay Later | Buy Now Pay Later | ~1,798 |
+| Klarna | Klarna | ~1,762 |
+| NULL | — | 1,930 |
+
+**payment_date format variety**
+
+3 formats present. All 31,936 rows accounted for — no unrecognised formats, no NULLs.
+
+| Format | Row count |
+|---|---|
+| YYYY-MM-DD | 24,982 |
+| MM-DD-YYYY | 3,489 |
+| DD/MM/YYYY | 3,465 |
 
 **Numeric field issues**
 
@@ -350,37 +383,72 @@ Exact distribution: run check 5.4.
 | Non-numeric payment_amount | 0 ✓ |
 | Negative payment_amount | 0 ✓ |
 
+**Ghost order references**
+
+| Issue | Count |
+|---|---|
+| order_id not found in raw_orders | 440 |
+
 ---
 
 ## 6. raw_returns
 
-**Row count:** run check 6.1
+**Row count:** 6,097
+
+**Duplicate return_id:** 0 — no duplicates found ✓
 
 **Missing values**
 
-| Column | Missing count |
+| Column | Missing count | Notes |
+|---|---|---|
+| return_id | 0 | Clean ✓ |
+| order_id | 0 | Clean ✓ |
+| product_id | 0 | Clean ✓ |
+| return_date | 0 | Clean ✓ |
+| return_reason | 634 | 10.4% of rows — kept as NULL, mapped to 'Not Provided' in staging |
+| refund_amount | 0 | Clean ✓ |
+
+**return_reason value distribution**
+
+| return_reason | Count |
 |---|---|
-| return_id | run check 6.3 |
-| order_id | run check 6.3 |
-| product_id | run check 6.3 |
-| return_date | run check 6.3 |
-| return_reason | 634 |
-| refund_amount | run check 6.3 |
+| No longer needed | 711 |
+| Not as described | 701 |
+| Damaged on arrival | 692 |
+| Better price elsewhere | 682 |
+| Wrong item sent | 674 |
+| Duplicate order | 673 |
+| Poor quality | 668 |
+| Changed mind | 662 |
+| NULL | 634 |
+
+8 clean reason values — no inconsistencies or casing variants found ✓
+
+**return_date format variety**
+
+| Format | Row count |
+|---|---|
+| YYYY-MM-DD | 4,821 |
+| DD/MM/YYYY | 649 |
+| MM-DD-YYYY | 627 |
+
+All 6,097 rows accounted for — no unrecognised formats, no NULLs expected ✓
+
+**Numeric field issues**
+
+| Issue | Count |
+|---|---|
+| Non-numeric refund_amount | 0 ✓ |
+| Negative refund_amount | 22 |
 
 **Ghost references — most critical issue in this dataset**
 
 | Issue | Count | % of rows | Severity |
 |---|---|---|---|
 | product_id not matching raw_products | 1,835 | 30.10% | High |
-| order_id not matching raw_orders | 60 | — | Medium |
+| order_id not matching raw_orders | 60 | 0.98% | Medium |
 
-Investigation note: Ghost product IDs follow `PROD-GHOST-*` pattern. Attempted reformatting to `PROD-117` and `PROD-000117` — neither matched existing product IDs. These are intentional dirty records.
-
-**Negative refund amounts**
-
-| Issue | Count |
-|---|---|
-| Negative refund_amount | 22 |
+Ghost product IDs follow the `PROD-GHOST-*` pattern — intentional dirty records that cannot be corrected. Ghost order IDs are regular-looking IDs missing from the raw_orders master table.
 
 **Returns before order date**
 
@@ -388,25 +456,66 @@ Investigation note: Ghost product IDs follow `PROD-GHOST-*` pattern. Attempted r
 |---|---|
 | return_date before order_date | 105 |
 
-**return_date format variety:** run check 6.5
-
 ---
 
 ## 7. raw_marketing_campaigns
 
-**Row count:** run check 7.1
+**Row count:** 12,000
 
-**Missing values:** run check 7.3
+**Duplicate campaign_id:** 0 — no duplicates found ✓
 
-**No critical issues found**
+**Missing values**
 
-All staging validation flag checks returned 0:
-- No duplicate touchpoints
-- No ghost customer references
-- No invalid date formats
-- No invalid clicked / converted values
-- No conversions without clicks
+All columns complete — no missing values found in any column.
 
-**channel value distribution:** run check 7.4
+| Column | Missing count |
+|---|---|
+| campaign_id | 0 ✓ |
+| customer_id | 0 ✓ |
+| campaign_name | 0 ✓ |
+| channel | 0 ✓ |
+| campaign_date | 0 ✓ |
+| clicked | 0 ✓ |
+| converted | 0 ✓ |
 
-**clicked / converted value distribution:** run check 7.6
+**channel value distribution**
+
+7 distinct channels, all clean values — no casing variants or spelling differences found ✓
+
+| channel | Count |
+|---|---|
+| Display | 1,760 |
+| Push Notification | 1,751 |
+| Influencer | 1,736 |
+| Affiliate | 1,713 |
+| SMS | 1,691 |
+| Paid Social | 1,680 |
+| Email | 1,669 |
+
+**campaign_date format variety**
+
+| Format | Row count |
+|---|---|
+| YYYY-MM-DD | 9,390 |
+| DD/MM/YYYY | 1,356 |
+| MM-DD-YYYY | 1,254 |
+
+All 12,000 rows accounted for — no unrecognised formats, no NULLs ✓
+
+**clicked / converted value distribution**
+
+| clicked | converted | Count | Notes |
+|---|---|---|---|
+| 0 | 0 | 8,381 | Not clicked, not converted |
+| 1 | 0 | 2,886 | Clicked but not converted |
+| 1 | 1 | 733 | Clicked and converted |
+
+No row has converted=1 with clicked=0 — no attribution logic issue found ✓
+
+**Ghost customer references**
+
+| Issue | Count |
+|---|---|
+| touchpoints with no matching customer_id | 0 ✓ |
+
+**No critical issues found** — cleanest table in the dataset. All flag checks confirm 0 issues.

@@ -131,17 +131,18 @@ Not all order statuses represent completed sales. Downstream analysis must apply
 
 ## order_items table
 
+> See data_quality_findings.md Section 4 for full findings.
+
 **data quality issues**
 
-| Issue                              | What you should do                                                                 | Why                                                                 |
-| ---------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Numeric values stored as text      | Convert `quantity`, `unit_price`, `discount`, and `line_total` into numeric types. | These fields are needed for revenue, discount, and quantity analysis. |
-| Negative quantity values           | Convert negative quantities to positive values using `ABS()`.                     | Negative quantities can create incorrect negative sales values.       |
-| Extreme quantity values            | Keep the original quantity, but create a capped quantity for safer analysis.       | Very large quantities can inflate sales and distort product analysis. |
-| Zero or invalid unit prices        | Convert invalid prices to `NULL` and flag zero unit prices.                       | Unit price is required for accurate revenue calculations.             |
-| Discounts outside the valid range  | Cap discounts between `0` and `1`, and flag values outside this range.            | Discounts below 0% or above 100% are not valid for normal analysis.   |
-| Incorrect line totals              | Recalculate line total from cleaned quantity, unit price, and discount.           | Raw `line_total` may not match the expected revenue formula.          |
-| Ghost product references           | Keep the row, but create a `ghost_product_flag`.                                  | These rows may not join correctly to the product table.               |
+| Issue | What you should do | Why |
+| --- | --- | --- |
+| Negative quantity values | Convert to positive using `ABS()` and flag with `negative_quantity_flag`. | Negative quantities produce negative revenue — a business logic violation. |
+| Extreme quantity values (> 99) | Keep original, create `quantity_capped` using `LEAST(ABS(quantity), 99)`, flag with `extreme_quantity_flag`. | Very large quantities inflate sales and distort product analysis. |
+| Zero unit_price (241 rows) | Keep the row, flag with `zero_unit_price_flag`. Do not set to NULL — unlike list_price, the transaction row is still valid. | Zero prices make revenue = 0 for those rows. Flag lets analysts decide whether to exclude them. |
+| Discounts outside 0–1 | Cap between 0 and 1, flag with `discount_range_issue_flag`. | Discounts below 0% or above 100% are not valid for revenue calculation. |
+| Incorrect line totals | Recalculate as `quantity_capped * unit_price * (1 - discount_clean)`, flag mismatches with `line_total_mismatch_flag`. | Raw `line_total` may not match the expected formula. |
+| Ghost product references (452 rows) | Keep the row, flag with `ghost_product_flag`. | These rows contain valid transaction data but cannot join to the product master. |
 
 **cleaning decisions**
 
@@ -175,60 +176,6 @@ After creating `staging.stg_order_items`, the issue flags were counted to confir
 | `ghost_product_flag`          | 452        | Some order items reference product IDs that may not exist in the product table. |
 
 
-## orders table
-
-**data quality issues**
-
-| Issue                         | What you should do                                                       | Why                                                                      |
-| ----------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| Mixed `order_date` formats    | Convert all valid date formats into one `DATE` column.                  | Orders need a real date field for time-series and cohort analysis.       |
-| Duplicate `order_id` values   | Keep one row per `order_id` and flag duplicate order IDs.               | Duplicate orders can duplicate revenue when joined to order items.       |
-| Missing `customer_id` values  | Keep the row, but flag missing customer IDs.                            | Orders without customers cannot be connected to customer analysis.       |
-| Ghost customer references     | Keep the row, but create a `ghost_customer_flag`.                       | These orders may not join correctly to the customer table.               |
-| Invalid order status values   | Standardize expected statuses and flag values outside the valid domain. | Incorrect statuses can distort order funnel and fulfillment analysis.    |
-| Text formatting inconsistency | Trim text fields and standardize readable text formatting.              | Consistent text values prevent duplicate categories in reporting.        |
-
-**cleaning decisions**
-
-
-| Column / Issue | Severity | Cleaning decision |
-|---|---|---|
-| `order_id` | High | Trim values and convert empty strings to `NULL`. Rows with missing `order_id` are excluded because the order cannot be reliably keyed. |
-| Duplicate `order_id` values | High | Use `COUNT(*) OVER (PARTITION BY order_id)` to flag duplicates, then keep one row per order using `ROW_NUMBER()`. |
-| `customer_id` | Low | Trim values and convert empty strings to `NULL`. |
-| Ghost `customer_id` values | Medium | Keep the row in staging, but flag customer IDs containing `GHOST` with `ghost_customer_flag`. |
-| `order_date` stored as text | High | Convert valid `YYYY-MM-DD`, `DD/MM/YYYY`, and `MM-DD-YYYY` values into a proper `DATE`. |
-| `order_date` validation | High | Flag rows where `order_date` is missing or outside the expected period from `2021-01-01` to `2024-06-30`. 
-| `order_status` | Medium | Standardize text formatting and validate against the expected status domain. 
-| `country` | Low | Trim and standardize casing for reporting consistency. |
-| `sales_channel` | Low | Trim and standardize casing because source values are already clean. |
-| `shipping_method` | Low | Trim and standardize casing for reporting consistency.  |
-
-**validation query**
-
-Run this after creating `stg.stg_orders` to confirm which issues actually exist.
-
-```sql
-SELECT
-    COUNT(*) AS total_rows,
-    COUNT(*) FILTER (WHERE duplicate_order_id_flag = TRUE) AS duplicate_order_id_count,
-    COUNT(*) FILTER (WHERE missing_customer_id_flag = TRUE) AS missing_customer_id_count,
-    COUNT(*) FILTER (WHERE ghost_customer_flag = TRUE) AS ghost_customer_count,
-    COUNT(*) FILTER (WHERE invalid_order_date_flag = TRUE) AS invalid_order_date_count,
-    COUNT(*) FILTER (WHERE invalid_order_status_flag = TRUE) AS invalid_order_status_count
-FROM stg.stg_orders;
-```
-**validation results**
-
-After creating `stg.stg_orders`, the issue flags were counted to confirm which suspected data quality issues actually exist.
-
-| Flag column                   | True count | Interpretation                                                              |
-| ----------------------------- | ---------- | --------------------------------------------------------------------------- |
-| `duplicate_order_id_flag`     | 465        | Duplicate order IDs exist and were handled by keeping one row per order.    |
-| `missing_customer_id_flag`    | 0          | No missing customer IDs were found. No correction needed.                   |
-| `ghost_customer_flag`         | 248        | Some orders reference customer IDs that may not exist in the customer table. |
-| `invalid_order_date_flag`     | 0          | No invalid order date formats were found. No correction needed.             |
-| `invalid_order_status_flag`   | 0          | No invalid order statuses were found. No correction needed.                 |
 
 
 ## marketing_campaigns table
@@ -276,84 +223,75 @@ After creating `stg.stg_marketing_campaigns`, the issue flags were counted to co
 
 ## payments table
 
+> See data_quality_findings.md Section 5 for full findings.
+
 **data quality issues**
 
-| Issue                              | What you should do                                                   | Why                                                                  |
-| ---------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Duplicate `payment_id` values      | Keep one row per `payment_id` and flag duplicate payment IDs.        | Duplicate payments can overstate collected revenue.                  |
-| Payment method spelling variants   | Standardize values such as `CC`, `creditcard`, and `card`.           | Consistent payment methods are needed for payment-method analysis.   |
-| Missing payment methods            | Keep the row, but flag missing payment methods.                      | Missing methods reduce the quality of payment-channel reporting.     |
-| Ghost order references             | Keep the row, but create a `ghost_order_flag`.                       | These payments may not join correctly to the orders table.           |
-| Mixed `payment_date` formats       | Convert all valid date formats into one `DATE` column.               | Payment dates are needed for time-based payment analysis.            |
-| Payments before order date         | Keep the row, but flag payments before the related order date.       | This may indicate a data issue or a valid business process.          |
-| Payment amount stored as text      | Convert valid payment amounts into `NUMERIC`.                        | Payment amount is needed for revenue and payment analysis.           |
+| Issue | What you should do | Why |
+|---|---|---|
+| 471 extra duplicate rows | Deduplicate on `payment_id`, keep one row, flag with `duplicate_payment_id_flag`. | Duplicate payments overstate collected revenue. |
+| 1,930 missing payment_method | Keep as NULL, flag with `missing_payment_method_flag`. Cannot be guessed. | Missing methods reduce payment-channel reporting quality. |
+| ~18 payment_method spelling variants | Map all variants to 7 canonical values. | Inconsistent spellings split the same method across multiple groups. |
+| 440 ghost order references | Keep row, flag with `ghost_order_flag` using NOT EXISTS against `raw_orders` — not ILIKE '%GHOST%'. | These payments cannot be linked to a valid order. |
+| 3 date formats | Parse all to DATE. All 31,936 rows matched — no NULL dates expected. | Date is required for payment timing analysis. |
+
+**payment_method mapping**
+
+| Canonical value | Raw variants to map |
+|---|---|
+| Credit Card | CC, Credit Card, creditcard, card |
+| Debit Card | debit, Debit Card, Debit |
+| PayPal | PAYPAL, paypal, PayPal |
+| Bank Transfer | BankTransfer, Bank Transfer, bank transfer |
+| Apple Pay | Apple Pay, applepay |
+| Buy Now Pay Later | Buy Now Pay Later |
+| Klarna | Klarna |
 
 **cleaning decisions**
 
-| Column / Issue                    | Severity | Cleaning decision                                                                                                              |
-| --------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `payment_id`                      | High     | Trim values and convert empty strings to `NULL`. Rows with missing `payment_id` are excluded because the payment cannot be keyed. |
-| Duplicate `payment_id` values     | High     | Use `COUNT(*) OVER (PARTITION BY payment_id)` to flag duplicates, then keep one row per payment using `ROW_NUMBER()`.          |
-| `order_id`                        | High     | Trim values and convert empty strings to `NULL`. Missing order IDs are flagged with `missing_order_id_flag`.                   |
-| Ghost `order_id` values           | Medium   | Keep the row in staging, but flag order IDs containing `GHOST` with `ghost_order_flag`.                                        |
-| `payment_method` variants         | Medium   | Standardize common variants into consistent values such as `Credit Card`, `PayPal`, `Apple Pay`, and `Klarna / BNPL`.          |
-| Missing `payment_method` values   | Medium   | Keep the row, but flag missing methods with `missing_payment_method_flag`.                                                     |
-| Invalid `payment_method` values   | Medium   | Flag non-null method values outside the accepted list using `invalid_payment_method_flag`.                                     |
-| `payment_status`                  | Medium   | Standardize expected statuses and flag unexpected non-null values with `invalid_payment_status_flag`.                          |
-| `payment_date` stored as text     | High     | Convert valid `YYYY-MM-DD`, `DD/MM/YYYY`, and `MM-DD-YYYY` values into a proper `DATE`. Invalid dates become `NULL`.          |
-| `payment_amount` stored as text   | High     | Convert valid values into `NUMERIC(12,2)`. Invalid values become `NULL` and are flagged with `invalid_payment_amount_flag`.    |
-| Negative `payment_amount` values  | High     | Keep the row, but flag negative amounts with `negative_payment_amount_flag`.                                                   |
-| Payment before order date         | Medium   | Compare `payment_date` to `stg.stg_orders.order_date` and flag earlier payments with `payment_before_order_flag`.              |
-
-**validation results**
-
-After creating `stg.stg_payments`, the issue flags were counted to confirm which suspected data quality issues actually exist.
-
-| Flag column                         | True count | Interpretation                                                            |
-| ----------------------------------- | ---------- | ------------------------------------------------------------------------- |
-| `duplicate_payment_id_flag`         | 471        | Duplicate payment IDs exist and were handled by keeping one row per payment. |
-| `missing_order_id_flag`             | 0          | No missing order IDs were found. No correction needed.                    |
-| `ghost_order_flag`                  | 220        | Some payments reference order IDs that may not exist in the orders table. |
-| `missing_payment_method_flag`       | 1901       | Missing payment methods exist and were kept with a flag for review.       |
-| `invalid_payment_method_flag`       | 0          | No invalid non-null payment method values were found. No correction needed. |
-| `invalid_payment_status_flag`       | 0          | No invalid payment statuses were found. No correction needed.             |
-| `invalid_payment_date_flag`         | 0          | No invalid payment date formats were found. No correction needed.         |
-| `invalid_payment_amount_flag`       | 0          | No invalid payment amounts were found. No correction needed.              |
-| `negative_payment_amount_flag`      | 0          | No negative payment amounts were found. No correction needed.             |
-| `payment_before_order_flag`         | 0          | No payments before order date were found. No correction needed.           |
+| Column / Issue | Severity | Cleaning decision |
+|---|---|---|
+| Duplicate `payment_id` values | High | Flag with `duplicate_payment_id_flag`, deduplicate using `ROW_NUMBER() OVER (PARTITION BY payment_id ORDER BY payment_date ASC NULLS LAST)`. |
+| `payment_method` variants | Medium | Map all raw variants to 7 canonical values using CASE. NULL stays NULL — flag with `missing_payment_method_flag`. |
+| Ghost `order_id` references (440) | Medium | Keep row. Flag with `ghost_order_flag` using `NOT EXISTS (SELECT 1 FROM raw.raw_orders WHERE order_id = payment.order_id)`. Same approach as stg_orders ghost_customer_flag. |
+| `payment_date` stored as text | High | Parse `YYYY-MM-DD`, `MM-DD-YYYY`, `DD/MM/YYYY` to DATE. All rows accounted for — no NULLs expected. |
+| `payment_amount` stored as text | High | Convert to `NUMERIC(12,2)`. No format issues found — no NULLs or negatives expected. |
+| Payment before order date | Medium | Flag with `payment_before_order_flag` by joining to stg_orders on order_id. |
 
 
 ## returns table
+
+> See data_quality_findings.md Section 6 for full findings.
 
 **data quality issues**
 
 | Issue                            | What you should do                                                     | Why                                                                  |
 | -------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | Mixed `return_date` formats      | Convert all valid date formats into one `DATE` column.                 | Return dates are needed for return-rate and time-based analysis.     |
-| Missing return reasons           | Fill missing reasons with `Not Provided` and keep a flag.              | Missing reasons reduce the quality of return-reason analysis.        |
-| Negative refund amounts          | Convert refund amounts to positive values using `ABS()`.               | Negative refunds can distort refund and return-value calculations.   |
-| Ghost order references           | Keep the row, but create a `ghost_order_flag`.                         | These returns may not join correctly to the orders table.            |
-| Ghost product references         | Keep the row, but create a `ghost_product_flag`.                       | These returns may not join correctly to the product table.           |
+| Missing return reasons (634)     | Fill missing reasons with `Not Provided` and keep a flag.              | Missing reasons reduce the quality of return-reason analysis.        |
+| Negative refund amounts (22)     | Convert refund amounts to positive values using `ABS()`.               | Negative refunds can distort refund and return-value calculations.   |
+| Ghost order references (60)      | Keep the row, flag with `ghost_order_flag` using NOT EXISTS against `raw_orders` — not ILIKE '%GHOST%'. | order_ids are regular-looking IDs missing from the master table, not IDs containing "GHOST". |
+| Ghost product references (1,835) | Keep the row, but create a `ghost_product_flag` using LIKE '%GHOST%'.  | Product IDs literally contain PROD-GHOST-* — correct to match on the string. |
 | Unmatched order or product IDs   | Flag returns that do not match staging order or product records.       | Unmatched references can break return analysis by order or product.  |
-| Returns before order date        | Keep the row, but flag returns before the related order date.           | This is a business-rule issue that may require review.               |
+| Returns before order date (105)  | Keep the row, but flag returns before the related order date.           | This is a business-rule issue that may require review.               |
 
 **cleaning decisions**
 
 | Column / Issue                   | Severity | Cleaning decision                                                                                                              |
 | -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `return_id`                      | High     | Trim values and convert empty strings to `NULL`. Rows with missing `return_id` are excluded because the return cannot be keyed. |
-| Duplicate `return_id` values     | High     | Use `COUNT(*) OVER (PARTITION BY return_id)` to flag duplicates, then keep one row per return using `ROW_NUMBER()`.            |
+| Duplicate `return_id` values     | High     | Flag duplicates with `duplicate_return_id_flag`, deduplicate using `ROW_NUMBER() OVER (PARTITION BY return_id ORDER BY return_date ASC NULLS LAST)`. No duplicates found — flag kept for documentation. |
 | `order_id`                       | High     | Trim values and convert empty strings to `NULL`. Missing order IDs are flagged with `missing_order_id_flag`.                   |
 | `product_id`                     | High     | Trim values and convert empty strings to `NULL`. Missing product IDs are flagged with `missing_product_id_flag`.               |
-| Ghost `order_id` values          | Medium   | Keep the row in staging, but flag order IDs containing `GHOST` with `ghost_order_flag`.                                        |
-| Ghost `product_id` values        | Medium   | Keep the row in staging, but flag product IDs containing `GHOST` with `ghost_product_flag`.                                    |
+| Ghost `order_id` values (60)     | Medium   | Keep the row. Flag with `ghost_order_flag` using `NOT EXISTS (SELECT 1 FROM raw.raw_orders WHERE order_id = return.order_id)`. Same approach as stg_orders and stg_payment. |
+| Ghost `product_id` values (1,835) | Medium  | Keep the row. Flag with `ghost_product_flag` using `LIKE '%GHOST%'` — product IDs literally contain PROD-GHOST-*. |
 | Unmatched `order_id` values      | High     | Join to `stg.stg_orders` and flag records with no matching order using `unmatched_order_flag`.                                 |
 | Unmatched `product_id` values    | High     | Join to `stg.stg_products` and flag records with no matching product using `unmatched_product_flag`.                           |
-| `return_date` stored as text     | High     | Convert valid `YYYY-MM-DD`, `DD/MM/YYYY`, and `MM-DD-YYYY` values into a proper `DATE`. Invalid dates become `NULL`.          |
+| `return_date` stored as text     | High     | Convert valid `YYYY-MM-DD`, `DD/MM/YYYY`, and `MM-DD-YYYY` values into a proper `DATE`. All 6,097 rows matched — no NULL dates expected. |
 | Missing `return_reason` values   | Medium   | Replace missing values with `Not Provided` and flag affected rows with `missing_return_reason_flag`.                           |
 | `refund_amount` stored as text   | High     | Convert valid values into `NUMERIC(12,2)`. Invalid values become `NULL` and are flagged with `invalid_refund_amount_flag`.     |
 | Negative `refund_amount` values  | High     | Create cleaned `refund_amount` using `ABS(refund_amount_original)` and flag affected rows with `negative_refund_amount_flag`. |
-| Return before order date         | Medium   | Compare `return_date` to `stg.stg_orders.order_date` and flag earlier returns with `return_before_order_flag`.                 |
+| Return before order date (105)   | Medium   | Compare `return_date` to `stg.stg_orders.order_date` and flag earlier returns with `return_before_order_flag`.                 |
 
 **validation results**
 

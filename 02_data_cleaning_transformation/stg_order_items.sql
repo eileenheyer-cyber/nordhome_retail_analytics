@@ -1,18 +1,27 @@
 /*
 Order Items Table Cleaning
 
-The raw order items table is cleaned and stored as staging.stg_order_items.
+The raw order items table is cleaned and stored as stg.stg_order_items.
 
 Cleaning steps:
 - Trim text fields
-- Convert quantity from text to INTEGER
-- Convert unit_price, discount, and line_total from text to NUMERIC
-- Fix negative quantities by using the absolute value
-- Cap extreme quantities at 99 for cleaned analysis
-- Cap discounts between 0 and 1
-- Recalculate line_total from cleaned values
-- Add issue flags for suspicious records
+- Convert quantity, unit_price, discount, and line_total from text to numeric types
+- Fix negative quantities using ABS() — flag with negative_quantity_flag
+- Cap extreme quantities at 99 — flag with extreme_quantity_flag
+- Cap discounts between 0 and 1 — flag with discount_range_issue_flag
+- Recalculate line_total from cleaned values — flag mismatches with line_total_mismatch_flag
+- Flag zero unit prices with zero_unit_price_flag (kept, not set to NULL — unlike list_price in products)
+- Flag ghost product references with ghost_product_flag (product_id contains PROD-GHOST-*)
+
+Raw data findings:
+- 75,473 rows, 0 missing values, 0 duplicate order_item_ids
+- All numeric fields are valid formats — issues are in the values, not the format
+- 379 negative quantities, 241 zero unit prices, 299 discounts out of range
+- 452 ghost product references — all items_with_no_product are ghost products
+- 0 items without a matching order — perfect referential integrity with orders table
 */
+
+CREATE SCHEMA IF NOT EXISTS stg;
 
 DROP TABLE IF EXISTS stg.stg_order_items;
 
@@ -136,4 +145,4 @@ final AS (
 )
 
 SELECT *
-FROM final
+FROM final;
