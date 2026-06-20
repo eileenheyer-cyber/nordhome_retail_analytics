@@ -1,14 +1,18 @@
 /* Customer Table Cleaning
 
-The `raw.raw_customers` table was cleaned and stored as `staging.customer`.
+The `raw.raw_customers` table was cleaned and stored as `stg.stg_customers`.
 
-The purpose of this step is to standardize customer-related data before it is used for analysis or Power BI modelling. Text fields were trimmed, names and location values were standardized, invalid email values were set to `NULL`, and inconsistent country, gender, and loyalty values were mapped into consistent formats.
-
-The `registration_date` column was converted into a proper `DATE` format, and `birth_year` was converted from decimal/text-like values into an integer. Duplicate customer records were handled based on `customer_id`, keeping the record with the latest valid registration date.
+Cleaning steps:
+- Trim and standardize text fields (INITCAP names, lower email)
+- Validate email format with regex, set invalid values to NULL
+- Map country codes to country names (10 European markets)
+- Parse registration_date from multiple text formats to DATE
+- Convert birth_year from text/decimal to integer
+- Normalize loyalty_member to boolean
+- Deduplicate on customer_id, keeping latest valid registration date
 */
 
-
-/* Customer Table Cleaning */
+CREATE SCHEMA IF NOT EXISTS stg;
 
 DROP TABLE IF EXISTS stg.stg_customers;
 
@@ -116,6 +120,3 @@ SELECT
     cleaned_at
 FROM deduplicated
 WHERE row_num = 1;
-
-SELECT count(*)
-FROM stg.stg_customers

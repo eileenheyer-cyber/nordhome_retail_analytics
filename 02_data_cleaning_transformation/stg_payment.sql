@@ -13,12 +13,6 @@ Cleaning steps:
 - Add issue flags for missing keys, invalid dates, invalid amounts, ghost order references, and payments before order date
 */
 
-/*
-Payments Table Cleaning
-
-The raw payments table is cleaned and stored as stg.stg_payments.
-*/
-
 CREATE SCHEMA IF NOT EXISTS stg;
 
 DROP TABLE IF EXISTS stg.stg_payments;

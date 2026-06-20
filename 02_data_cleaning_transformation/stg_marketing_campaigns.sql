@@ -23,7 +23,7 @@ WITH source AS (
 
 cleaned_text AS (
     SELECT
-        NULLIF(TRIM(campaign_id), '') AS campaign_id,
+        NULLIF(TRIM(campaign_id), '') AS marketing_touchpoint_id,
         NULLIF(TRIM(customer_id), '') AS customer_id,
         NULLIF(TRIM(campaign_name), '') AS campaign_name_raw,
         NULLIF(TRIM(channel), '') AS channel_raw,
@@ -35,7 +35,7 @@ cleaned_text AS (
 
 converted_values AS (
     SELECT
-        campaign_id,
+        marketing_touchpoint_id,
         customer_id,
 
         -- Keep campaign name as text, do not force INITCAP
@@ -82,11 +82,11 @@ flagged_values AS (
     SELECT   --This checks whether the same customer received the same campaign through the same channel on the same date more than once. The duplicate logic should be based on the real business grain:
         *,
         COUNT(*) OVER (
-            PARTITION BY campaign_id, customer_id, campaign_date
-        ) AS campaign_touchpoint_count,  
+            PARTITION BY marketing_touchpoint_id, customer_id, campaign_date
+        ) AS campaign_touchpoint_count,
 
         ROW_NUMBER() OVER (
-            PARTITION BY campaign_id, customer_id, campaign_date
+            PARTITION BY marketing_touchpoint_id, customer_id, campaign_date
             ORDER BY converted DESC NULLS LAST, clicked DESC NULLS LAST
         ) AS row_num
     FROM converted_values
@@ -94,7 +94,7 @@ flagged_values AS (
 
 final AS (
     SELECT
-        campaign_id,
+        marketing_touchpoint_id,
         customer_id,
         campaign_name,
         channel,
