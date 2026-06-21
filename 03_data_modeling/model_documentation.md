@@ -39,6 +39,18 @@ dim_customer ←── fact_returns ──────────────�
 dim_customer ←── fact_marketing_touchpoints ─────────→ dim_marketing_campaigns
 ```
 
+### 2.1 Build Order
+
+Tables must be created in this sequence. Each layer depends on the previous one.
+
+1. **Staging layer** (`stg` schema) — run all files in `02_data_cleaning_transformation/`
+2. **Dimension tables** (`mart` schema) — run all files in `03_data_modeling/01_dimension_tables/`. Any order within this layer is safe, but `dim_date` must be rebuilt whenever the date range changes.
+3. **Fact tables** (`mart` schema) — run in this order:
+   - `fact_order_items.sql`
+   - `fact_payments.sql`
+   - `fact_returns.sql` — `dim_return_reason` must be current before running; rebuilding the dim drops the PK that the fact FK references
+   - `fact_marketing_touchpoints.sql` — `stg_marketing_campaigns` must use `marketing_touchpoint_id` (not the original `campaign_id`); rebuild the stg table first if the column is missing
+
 ---
 
 ## 3. Dimension Tables
@@ -109,6 +121,8 @@ The date key uses YYYYMMDD integer format (e.g. 2024-03-15 → 20240315) for fas
 Not all staging quality flags are carried into the fact tables. The decision rule is:
 
 > Keep a flag if it changes whether a row belongs in standard reporting or affects which measure value to trust. Remove a flag if the measure is still valid regardless, or if the information is already available from the dimension.
+
+All flags originate in the `stg` layer — they are computed during staging. Only a selected subset are carried into each fact table. Flags not carried are listed in the "Flags removed" table below.
 
 **Flags kept and why:**
 
@@ -341,3 +355,41 @@ GROUP BY dc.customer_id;
 | Unique campaign-channel combinations from staging | 98 |
 
 Validation confirms the table is at the correct grain with one row per `campaign_name + channel` plus one unknown fallback row.
+
+### dim_customer
+
+| Check | Result |
+|---|---:|
+| Total rows | 8,365 |
+| Unknown fallback rows (`customer_key = -1`) | 1 |
+| Duplicate `customer_id` values | 0 |
+
+### dim_product
+
+| Check | Result |
+|---|---:|
+| Total rows | 1,091 |
+| Unknown fallback rows (`product_key = -1`) | 1 |
+| Duplicate `product_id` values | 0 |
+
+### dim_date
+
+| Check | Result |
+|---|---:|
+| Total rows | 1,467 |
+| Gaps in calendar sequence | 0 |
+
+### dim_payment
+
+| Check | Result |
+|---|---:|
+| Total rows | 31,466 |
+| Unknown fallback rows (`payment_key = -1`) | 1 |
+| Duplicate `payment_id` values | 0 |
+
+### dim_return_reason
+
+| Check | Result |
+|---|---:|
+| Total rows | 9 |
+| Duplicate `return_reason` values | 0 |
