@@ -12,3 +12,6 @@ data/cleaned/
 __pycache__/
 *.pyc
 .env
+
+# Personal project log
+project_log.md
