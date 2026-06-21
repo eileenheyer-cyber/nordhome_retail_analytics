@@ -92,10 +92,10 @@ SELECT
     COALESCE(price_issue_flag, FALSE) AS price_issue_flag,
 
     CASE
-        WHEN product_id ILIKE '%ghost%' THEN 'Ghost product id' --ILIKE ignores uppercase/lowercase.
-        WHEN category IS NULL THEN 'Missing category'
+        WHEN product_id ILIKE '%ghost%' THEN 'Ghost product id'
+        WHEN category IS NULL           THEN 'Missing category'
         ELSE 'Valid product'
-    END AS product_quality_status -- i keept this column because is it good practice if we want to group by different quality issues. but this column is not necessary here .
+    END AS product_quality_status
 
 FROM stg.stg_products
 WHERE product_id IS NOT NULL;

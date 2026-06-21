@@ -7,6 +7,8 @@ registration info, and loyalty status for use in fact table joins.
 Row -1 is the unknown fallback for fact rows with no matching customer.
 */
 
+CREATE SCHEMA IF NOT EXISTS mart;
+
 DROP TABLE IF EXISTS mart.dim_customer;
 
 CREATE TABLE mart.dim_customer (
@@ -101,14 +103,13 @@ SELECT
     COALESCE(gender, 'Unknown')  AS gender,
     birth_year,
     CASE
-        WHEN birth_year IS NULL               THEN 'Unknown'
-        WHEN birth_year >= 2010               THEN 'Under 18'
-        WHEN birth_year BETWEEN 1997 AND 2009 THEN '18-29'
-        WHEN birth_year BETWEEN 1987 AND 1996 THEN '30-39'
-        WHEN birth_year BETWEEN 1977 AND 1986 THEN '40-49'
-        WHEN birth_year BETWEEN 1967 AND 1976 THEN '50-59'
-        WHEN birth_year < 1967                THEN '60+'
-        ELSE 'Unknown'
+        WHEN birth_year IS NULL                                       THEN 'Unknown'
+        WHEN birth_year > EXTRACT(YEAR FROM CURRENT_DATE)::INT - 18  THEN 'Under 18'
+        WHEN birth_year >= EXTRACT(YEAR FROM CURRENT_DATE)::INT - 29 THEN '18-29'
+        WHEN birth_year >= EXTRACT(YEAR FROM CURRENT_DATE)::INT - 39 THEN '30-39'
+        WHEN birth_year >= EXTRACT(YEAR FROM CURRENT_DATE)::INT - 49 THEN '40-49'
+        WHEN birth_year >= EXTRACT(YEAR FROM CURRENT_DATE)::INT - 59 THEN '50-59'
+        ELSE '60+'
     END AS age_group,
     registration_date,
     EXTRACT(YEAR FROM registration_date)::INT AS registration_year,

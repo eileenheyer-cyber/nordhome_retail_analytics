@@ -2,396 +2,342 @@
 
 ## 1. Goal
 
-The goal of this data model is to create an analysis-ready star schema for sales, customer, product, order, store, payment, date, and marketing analysis.
+The goal of this data model is to create an analysis-ready star schema for sales, customer, product, payment, return, and marketing analysis.
 
 The model is designed to support business questions such as:
 
-* revenue development over time
-* customer and country performance
-* product and category performance
-* order and payment behavior
-* return impact on revenue
-* marketing campaign performance
-* campaign-related revenue attribution
+- Revenue development over time
+- Customer and country performance
+- Product and category performance
+- Order and payment behaviour
+- Return impact on revenue
+- Marketing campaign performance and channel attribution
 
 ---
 
 ## 2. Model Overview
 
+The model follows a star schema pattern with 4 fact tables and 6 dimension tables.
+All 4 fact tables share `dim_customer` and `dim_date` as conformed dimensions.
+
+```
+                             dim_date
+                                ↑
+dim_customer ←── fact_order_items ──────────────────→ dim_product
+                 (order_status, country,
+                  sales_channel, shipping_method
+                  denormalized on fact)
+
+dim_customer ←── fact_payments ─────────────────────→ dim_payment
+                 (order_status, country,
+                  sales_channel denormalized on fact)
+
+dim_customer ←── fact_returns ──────────────────────→ dim_product
+                 (order_status, country,              → dim_return_reason
+                  sales_channel denormalized on fact)
+
+dim_customer ←── fact_marketing_touchpoints ─────────→ dim_marketing_campaigns
+```
 
 ---
 
 ## 3. Dimension Tables
 
-The model uses the following dimension tables:
-
-| dimension table | description |
-|---|---|
-| `dim_customers` | Customer attributes such as customer ID, name, country, gender, registration date, and loyalty status |
-| `dim_products` | Product attributes such as product name, category, brand, standard price, unit cost, launch date, and product quality flags |
-| `dim_orders` | Order-level descriptive information such as order status, sales channel, shipping method, and order country |
-| `dim_date` | Calendar attributes at day level, such as year, quarter, month, month name, weekday, and weekend flag |
-| `dim_payment` | Descriptive payment attributes such as payment ID, payment method, provider, and payment type |
-| `dim_return_reason` | Return reason attributes such as return reason, return reason category, and whether the reason was provided or unknown |
-| `dim_marketing_campaigns` | Marketing campaign and channel information at campaign-channel level |                                               
----
- ### 1. Payment modelling decision
-
-Payment data is split into a dimension table and a fact table.
-
-`dim_payment` stores descriptive payment attributes, such as payment method, provider, and payment type.
-
-`fact_payments` stores measurable payment events, such as payment amount, payment status, and transaction-level information.
-
-This separation is necessary because payment data is not only descriptive. It also contains business events that can be analysed, for example failed payments, refunded payments, and payment amounts by method.
-
-### 2. Return modelling decision
-
-Return data is split into `dim_return_reason` and `fact_returns`.
-
-`dim_return_reason` describes why an item was returned.  
-Examples include damaged on arrival, wrong item, quality issue, or customer changed mind.
-
-`fact_returns` stores the actual return event, such as the returned order item, return date, refund amount, and return quantity.
-
-This keeps the model clean because the reason for a return is descriptive, while the return itself is a measurable business event.
-
-### 3. Return modelling decision
-
-Return data is split into `dim_return_reason` and `fact_returns`.
-
-`dim_return_reason` describes why an item was returned.  
-Examples include damaged on arrival, wrong item, quality issue, or customer changed mind.
-
-`fact_returns` stores the actual return event, such as the returned order item, return date, refund amount, and return quantity.
-
-This keeps the model clean because the reason for a return is descriptive, while the return itself is a measurable business event.
-
-### 4. Date dimension decision
-
-`dim_date` is created at day level.
-
-Even if many analyses are later shown by month, quarter, or year, the fact tables usually contain exact dates. A day-level date dimension allows flexible analysis at different time levels.
-
-Examples:
-
-- daily sales
-- monthly revenue
-- quarterly growth
-- weekday vs weekend performance
-- return rate by month
-- payment issues by date
-
-### 5 Unknown Dimension Rows
-
-Some dimension tables include an unknown fallback row with surrogate key `-1`.
-
-This row is used when a fact record cannot be matched to a valid dimension record. Instead of deleting the fact record, the model keeps it and links it to the unknown row.
-
-This protects the completeness of the analysis while making data quality issues visible.
-
-
-## 4. Fact Tables
-
-The model uses the following fact tables:
-
-| fact table | grain | purpose |
+| Dimension table | Grain | Description |
 |---|---|---|
-| `fact_order_items` | One row per product line within one order | Main sales fact table for revenue, quantity, product, customer, and order analysis |
-| `fact_payments` | One row per payment transaction | Used to analyse payment amounts, payment status, payment method performance, and payment issues |
-| `fact_returns` | One row per returned order item or return event | Used to analyse returned items, return reasons, refund amounts, and return rates |
-| `fact_marketing_touchpoints` | One row per marketing touchpoint | Used to analyse marketing campaign interactions and channel performance |
-
-### 4.1 `fact_order_items`
-
-The main sales fact table is `fact_order_items`.
-
-**Grain:**
-
-```text
-One row represents one product line within one order.
-```
-
-This means that if one order contains three products, the fact table will contain three rows.
-
-**Expected keys:**
-
-```text
-order_key
-customer_key
-product_key
-date_key
-payment_key
-```
-
-**Expected measures:**
-
-```text
-quantity
-unit_price
-discount_amount
-line_revenue
-line_cost
-line_margin
-```
-
-This fact table supports sales, product, customer, store, payment, and return-related analysis.
+| `dim_customer` | One row per customer | Demographics, geography, registration info, loyalty status, and data quality flags |
+| `dim_product` | One row per product | Product name, category, subcategory, brand, unit cost, list price, and quality status |
+| `dim_date` | One row per calendar day | Year, quarter, month, week, day, and weekend flag — generated from the combined date range across all four fact sources |
+| `dim_payment` | One row per payment transaction | Payment method, payment status, and payment date |
+| `dim_return_reason` | One row per unique return reason | Return reason text and standardized reason category |
+| `dim_marketing_campaigns` | One row per campaign-channel combination | Campaign name and channel |
 
 ---
 
-### 4.2 `fact_marketing_touchpoints`
+## 4. Modelling Decisions
 
-The marketing fact table is `fact_marketing_touchpoints`.
+### 4.1 dim_order removed — order attributes denormalized onto fact
 
-**Grain:**
+A `dim_order` table was considered but removed during modelling review.
 
-```text
-One row represents one marketing touchpoint between a customer and a campaign-channel combination on a specific date.
-```
+In a Kimball star schema, orders are facts (they carry measures: revenue, quantity), not dimensions. Storing them as a separate dimension creates an unnecessary outrigger join on every query.
 
-**Expected columns:**
+Instead, order-level descriptive attributes — `order_status`, `country`, `sales_channel`, `shipping_method` — are denormalized directly onto `fact_order_items`, `fact_payments`, and `fact_returns`. These attributes have the same value for every row that belongs to the same order, so denormalization adds no redundancy risk.
 
-```text
-marketing_touchpoint_id
-customer_key
-campaign_key
-date_key
-clicked
-converted
-```
+`order_id` is retained as a degenerate dimension on each fact table for direct lookup and cross-fact joining without needing a separate table.
 
-The `marketing_touchpoint_id` is kept in the fact table because it represents an individual marketing interaction event.
+### 4.2 Payment split — dim_payment and fact_payments
 
-This fact table supports campaign performance analysis, such as clicks, conversions, and later revenue attribution.
+Payment data is split across a dimension table and a fact table.
 
----
+`dim_payment` stores descriptive payment attributes: payment method, payment status, and payment date.
 
-## 5. Marketing Campaign Grain Decision
+`fact_payments` stores the measurable event: payment amount.
 
-### Issue
+This separation keeps measures and descriptors in their correct layers. Payment method and status are used as filter and grouping attributes in analysis (e.g. revenue by payment method, refund rate by method), while payment amount is the metric being aggregated.
 
-During validation, the original column `campaign_id` showed the following result:
+### 4.3 Return split — dim_return_reason and fact_returns
 
-| metric                                 |  value |
-| -------------------------------------- | -----: |
-| total_rows                             | 12,000 |
-| distinct_campaign_ids                  | 12,000 |
-| distinct_campaign_names                |     14 |
-| distinct_campaign_channel_combinations |     98 |
+Return data is split across a dimension table and a fact table.
 
-The result shows that `campaign_id` is unique for every row. Therefore, it does not represent a reusable marketing campaign. Instead, it represents one marketing interaction or touchpoint.
+`dim_return_reason` is a small lookup table that maps each unique return reason text to a standardized `reason_category` (e.g. 'Delivery issue', 'Product quality', 'Customer preference'). This allows grouping returns by category without repeating the mapping logic in every query.
 
-### Modelling decision
+`fact_returns` stores the actual return event: return date, refund amount, and links to the customer, product, and reason.
 
-The raw column `campaign_id` is renamed to `marketing_touchpoint_id` in the staging layer.
+`dim_return_reason` has no `-1` unknown fallback row. This is intentional: NULL and blank return reasons are handled inline during the staging INSERT (`COALESCE(NULLIF(TRIM(...), ''), 'Unknown')`), so every return reason in the fact table is guaranteed to find a match in the dimension. The FK is declared nullable as a defensive measure only.
 
-The marketing campaign dimension is not created from `marketing_touchpoint_id`. Instead, the dimension is created at the following grain:
+### 4.4 Marketing campaign grain
 
-```text
-One row per campaign name and channel combination.
-```
+The raw `campaign_id` column is unique per row (12,000 distinct values for 12,000 rows). It represents an individual customer interaction, not a reusable campaign. It was renamed to `marketing_touchpoint_id` in the staging layer.
 
-The business key of `dim_marketing_campaigns` is therefore:
+`dim_marketing_campaigns` is built at the campaign-channel grain (one row per unique `campaign_name + channel` combination), giving 98 real campaign-channel rows plus one Unknown fallback row.
 
-```text
-campaign_name + channel
-```
+`fact_marketing_touchpoints` stores one row per touchpoint with `marketing_touchpoint_id` as a degenerate dimension.
 
-### Dimension table design
+This grain keeps the campaign dimension small and analytical, supporting questions like clicks per channel, conversions per campaign, and channel performance comparison.
 
-```text
-mart.dim_marketing_campaigns
-- campaign_key
-- campaign_name
-- channel
-```
+### 4.5 Date dimension
 
-`campaign_key` is the surrogate key used to connect the campaign dimension with the marketing fact table.
+`dim_date` is generated at day level using GENERATE_SERIES, which ensures every calendar date in the range is present even if no event occurred on that day.
 
-### Fact table relationship
+The date key uses YYYYMMDD integer format (e.g. 2024-03-15 → 20240315) for fast joins without string conversion.
 
-```text
-mart.fact_marketing_touchpoints
-- marketing_touchpoint_id
-- customer_key
-- campaign_key
-- date_key
-- clicked
-- converted
-```
+**Date range decision:** The range is derived from the MIN and MAX across all four source date columns — `order_date`, `payment_date`, `return_date`, and `campaign_date` — not just orders. This is required because all four fact tables hold a `date_key` FK that must resolve to a row in `dim_date`. Building the range from orders only caused a foreign key violation when campaign dates fell outside the order date range.
 
-### Reasoning
+### 4.6 Data quality flags on fact tables
 
-Using `marketing_touchpoint_id` as the campaign dimension key would create 12,000 dimension rows. This would make the dimension too detailed and not useful for campaign-level analysis.
+Not all staging quality flags are carried into the fact tables. The decision rule is:
 
-By using `campaign_name + channel` as the campaign dimension grain, the model supports analysis such as:
+> Keep a flag if it changes whether a row belongs in standard reporting or affects which measure value to trust. Remove a flag if the measure is still valid regardless, or if the information is already available from the dimension.
 
-* campaign performance by channel
-* clicks and conversions by campaign
-* revenue attribution by campaign and channel
-* comparison of marketing channels
+**Flags kept and why:**
 
-This keeps the dimension table small, descriptive, and aligned with the analytical business questions.
+| Flag | Table | Reason kept |
+|---|---|---|
+| `ghost_product_flag` | fact_order_items, fact_returns | Product doesn't exist in the master — revenue and returns cannot be attributed to any category or brand |
+| `zero_unit_price_flag` | fact_order_items | A zero unit price produces zero line_total — silently excludes the row from revenue without explanation |
+| `line_total_mismatch_flag` | fact_order_items | The raw line_total and the recalculated value disagree — analyst must decide which number to trust |
+| `ghost_order_flag` | fact_payments, fact_returns | Order doesn't exist in the master — payment or return cannot be linked to any real transaction |
+| `ghost_customer_flag` | fact_marketing_touchpoints | Customer doesn't exist — touchpoint cannot be attributed to any real customer |
+| `converted_without_click_flag` | fact_marketing_touchpoints | Conversion recorded with no prior click — the conversion logic itself is invalid for this row |
+
+**Flags removed and why:**
+
+| Flag | Table | Reason removed |
+|---|---|---|
+| `discount_range_issue_flag` | fact_order_items | The `discount` column is already capped to [0, 1] in staging — the flag describes the original dirty value, not what was loaded |
+| `missing_payment_method_flag` | fact_payments | Redundant — detectable as `payment_method IS NULL` directly from `dim_payment` |
+| `payment_before_order_flag` | fact_payments | The payment_amount is still valid regardless of date order — this is a timing anomaly, not a measure problem |
+| `return_before_order_flag` | fact_returns | The refund_amount is still valid regardless of date order — same reasoning as above |
+
+### 4.7 Unknown fallback rows (-1)
+
+Most dimension tables include an unknown fallback row with surrogate key `-1`. This row is used when a fact record cannot be matched to a valid dimension record — for example, ghost customer references in orders, or orphaned product IDs in returns.
+
+Instead of dropping fact rows that fail a dimension join, the model maps them to the unknown member. This keeps fact table counts complete while making data quality issues visible through filters on `is_unknown_customer`, `ghost_product_flag`, etc.
+
+`dim_return_reason` and `dim_date` do not have unknown rows — see sections 4.3 and 4.5 for reasoning.
 
 ---
 
-## 6. Unknown Product Decision
+## 5. Fact Tables
 
-During validation, some product references could not be matched to valid product records.
+### 5.1 `fact_order_items`
 
-### Modelling decision
+**Grain:** one row per order line item.
 
-Ghost product rows are mapped to an Unknown Product member in `dim_products`.
+If one order contains three products, the fact table contains three rows for that order.
 
-```text
-product_key = -1
-product_id = UNKNOWN
-product_name = Unknown Product
-```
+| Column | Type | Role |
+|---|---|---|
+| `fact_order_item_key` | INT | Surrogate PK |
+| `order_item_id` | TEXT | Degenerate dimension |
+| `order_id` | TEXT | Degenerate dimension |
+| `customer_key` | INT | FK → dim_customer |
+| `product_key` | INT | FK → dim_product |
+| `order_date_key` | INT | FK → dim_date |
+| `order_status` | TEXT | Denormalized from stg_orders |
+| `country` | TEXT | Denormalized from stg_orders |
+| `sales_channel` | TEXT | Denormalized from stg_orders |
+| `shipping_method` | TEXT | Denormalized from stg_orders |
+| `quantity` | INT | Measure |
+| `unit_price` | NUMERIC(10,2) | Measure |
+| `discount` | NUMERIC(10,4) | Measure |
+| `line_total` | NUMERIC(12,2) | Measure — cleaned and recalculated from quantity × unit_price × (1 − discount) |
+| `ghost_product_flag` | BOOLEAN | Exclude for clean revenue reporting |
+| `zero_unit_price_flag` | BOOLEAN | Affects revenue totals |
+| `line_total_mismatch_flag` | BOOLEAN | Raw line_total did not match recalculated value |
 
-These rows remain in `fact_order_items` so that total revenue and order-level analysis remain complete.
-
-However, Unknown Product rows should be excluded or separated in product-, category-, and brand-level analysis because they cannot be assigned to a real product.
-
-### Reasoning
-
-Removing these rows would reduce the completeness of revenue analysis. Mapping them to an Unknown Product keeps the fact table complete while making the data quality issue visible in analysis.
-
----
-
-## 7. Relationship Logic
-
-The fact tables are connected through shared dimensions.
-
-Example:
-
-```text
-fact_order_items
-    -> customer_key
-    -> dim_customers
-
-fact_marketing_touchpoints
-    -> customer_key
-    -> dim_customers
-```
-
-This allows analysis across different business processes.
-
-For example:
-
-```text
-Customers who clicked a campaign can later be compared with their sales behavior.
-```
-
-However, the two fact tables should not be joined directly without a clear business rule. For revenue attribution, a defined attribution logic is needed, such as:
-
-```text
-Last-click attribution within a 7-day window.
-```
-It means:
-If a customer clicked a campaign, and then placed an order within the next 7 days, we give the revenue credit to the latest clicked campaign before the order.
-
-This avoids duplicated revenue and makes the analysis explainable.
+**Join path for customer_key:** `stg_order_items` does not carry `customer_id`. It is joined to `stg_orders` on `order_id` first, then `customer_id` is used to look up `dim_customer.customer_key`.
 
 ---
 
-## 8. Main Business Questions
+### 5.2 `fact_payments`
+
+**Grain:** one row per payment transaction.
+
+| Column | Type | Role |
+|---|---|---|
+| `fact_payment_key` | INT | Surrogate PK |
+| `payment_id` | TEXT | Degenerate dimension |
+| `order_id` | TEXT | Degenerate dimension |
+| `customer_key` | INT | FK → dim_customer |
+| `payment_key` | INT | FK → dim_payment |
+| `payment_date_key` | INT | FK → dim_date |
+| `order_status` | TEXT | Denormalized from stg_orders |
+| `country` | TEXT | Denormalized from stg_orders |
+| `sales_channel` | TEXT | Denormalized from stg_orders |
+| `payment_amount` | NUMERIC(12,2) | Measure |
+| `ghost_order_flag` | BOOLEAN | Payment references an order not in raw_orders |
+
+**Join path for customer_key:** `stg_payments` carries `order_id` but not `customer_id`. The fact INSERT joins to `stg_orders` first to retrieve `customer_id`, then looks up `dim_customer.customer_key`.
+
+**Filtering note:** Use `payment_status = 'Paid'` from `dim_payment` when calculating realized revenue. Rows with status 'Failed', 'Pending', or 'Refunded' represent uncommitted or reversed transactions.
+
+---
+
+### 5.3 `fact_returns`
+
+**Grain:** one row per return event.
+
+| Column | Type | Role |
+|---|---|---|
+| `fact_return_key` | INT | Surrogate PK |
+| `return_id` | TEXT | Degenerate dimension |
+| `order_id` | TEXT | Degenerate dimension |
+| `customer_key` | INT | FK → dim_customer |
+| `product_key` | INT | FK → dim_product |
+| `return_reason_key` | INT | FK → dim_return_reason (nullable) |
+| `return_date_key` | INT | FK → dim_date |
+| `order_status` | TEXT | Denormalized from stg_orders |
+| `country` | TEXT | Denormalized from stg_orders |
+| `sales_channel` | TEXT | Denormalized from stg_orders |
+| `refund_amount` | NUMERIC(12,2) | Measure — ABS-corrected value from staging |
+| `ghost_product_flag` | BOOLEAN | Product ID is a ghost record |
+| `ghost_order_flag` | BOOLEAN | Order ID not found in raw_orders |
+
+**Join path for customer_key:** `stg_returns` carries `order_id` but not `customer_id`. The fact INSERT joins to `stg_orders` first.
+
+**Join path for return_reason_key:** Text-based join on `stg_returns.return_reason = dim_return_reason.return_reason`. The join is guaranteed to succeed because both tables source from `stg_returns`.
+
+---
+
+### 5.4 `fact_marketing_touchpoints`
+
+**Grain:** one row per customer-campaign-channel touchpoint.
+
+| Column | Type | Role |
+|---|---|---|
+| `fact_touchpoint_key` | INT | Surrogate PK |
+| `marketing_touchpoint_id` | TEXT | Degenerate dimension |
+| `customer_key` | INT | FK → dim_customer |
+| `campaign_key` | INT | FK → dim_marketing_campaigns |
+| `campaign_date_key` | INT | FK → dim_date |
+| `clicked` | SMALLINT | Measure — binary (0/1), sum to count clicks |
+| `converted` | SMALLINT | Measure — binary (0/1), sum to count conversions |
+| `ghost_customer_flag` | BOOLEAN | Customer ID not in customer master |
+| `converted_without_click_flag` | BOOLEAN | Conversion recorded with no prior click — data quality issue |
+
+**Campaign key join:** composite match on `campaign_name + channel` to `dim_marketing_campaigns`.
+
+**Rate calculations:**
+- Click-through rate: `SUM(converted) / NULLIF(SUM(clicked), 0)`
+- Conversion rate: `SUM(converted) / NULLIF(COUNT(*), 0)`
+
+---
+
+## 6. Cross-Fact Relationships
+
+The four fact tables connect through shared dimension keys, most importantly `customer_key` and `order_id`.
+
+Example: customers who interacted with a campaign can be compared with their purchase behaviour:
+
+```sql
+-- Customers who converted on a campaign, with their total order revenue
+SELECT
+    dc.customer_id,
+    SUM(foi.line_total) AS total_revenue
+FROM mart.fact_marketing_touchpoints fmt
+JOIN mart.dim_customer dc ON fmt.customer_key = dc.customer_key
+JOIN mart.fact_order_items foi ON fmt.customer_key = foi.customer_key
+WHERE fmt.converted = 1
+  AND foi.ghost_product_flag = FALSE
+GROUP BY dc.customer_id;
+```
+
+**Important:** Fact tables should not be joined directly without a business rule to prevent row duplication. For revenue attribution, a defined attribution model is needed, for example:
+
+> Last-click attribution within a 7-day window: if a customer clicked a campaign and placed an order within the next 7 days, the revenue credit goes to the most recent clicked campaign before the order.
+
+---
+
+## 7. Main Business Questions
 
 ### Sales
 
-* How much revenue do we generate?
-* Which month has the highest sales?
-* Which sales channel performs best?
-* Which customers and countries generate the most sales?
-* How do returns affect revenue?
+- How much revenue do we generate over time?
+- Which month, quarter, or year has the highest sales?
+- Which sales channel performs best?
+- Which countries generate the most revenue?
+- How do returns affect net revenue?
 
 ### Customer
 
-* Which countries have the most customers?
-* Do loyalty customers spend more?
-* What is the average order value?
+- Which countries have the most active customers?
+- Do loyalty members spend more than non-loyalty members?
+- What is the average order value by customer segment?
 
 ### Product
 
-* Which categories generate the most revenue?
-* Which products sell often but have low margin?
-* Are there products with suspicious prices?
+- Which categories generate the most revenue?
+- Which products sell frequently but have low margin?
+- Are there products with suspicious or zero unit prices?
+- Which products have the highest return rate?
 
 ### Operations
 
-* Which shipping method is used most?
-* Are returns concentrated in certain product categories?
-* Which payment methods generate the most paid revenue?
-* Which payment methods have the highest refund rate?
-* Do BNPL/Klarna customers have higher average order value?
-* How much revenue is pending and not yet safely received?
+- Which shipping method is most commonly used?
+- Are returns concentrated in specific product categories?
+- Which payment methods generate the most paid revenue?
+- Which payment methods have the highest refund or failure rate?
+- How much revenue is pending and not yet confirmed?
 
 ### Marketing
 
-* Which campaigns generate the most clicks?
-* Which campaigns generate the most conversions?
-* Which marketing channels perform best?
-* Which campaigns are associated with the most revenue after attribution?
+- Which campaigns generate the most clicks and conversions?
+- Which channels perform best by conversion rate?
+- Which campaigns are associated with the most revenue after attribution?
 
 ---
 
-## 9. Summary of Key Modelling Decisions
+## 8. Summary of Key Modelling Decisions
 
-| topic                              | decision                                                        |
-| ---------------------------------- | --------------------------------------------------------------- |
-| Sales fact grain                   | one row per product line within one order                       |
-| Marketing fact grain               | one row per customer-campaign-channel-date touchpoint           |
-| Marketing campaign dimension grain | one row per campaign name and channel combination               |
-| Original `campaign_id`             | renamed to `marketing_touchpoint_id` in staging                 |
-| Unknown products                   | mapped to `product_key = -1`                                    |
-| Ghost product rows                 | kept in fact table for complete revenue analysis                |
-| Product-level analysis             | Unknown Product should be excluded or shown separately          |
-| Multiple fact tables               | used because sales and marketing have different business grains |
+| Topic | Decision |
+|---|---|
+| `dim_order` | Removed — order attributes denormalized onto fact tables instead of an outrigger join |
+| `fact_order_items` grain | One row per order line item |
+| `fact_marketing_touchpoints` grain | One row per customer-campaign-channel touchpoint |
+| `dim_marketing_campaigns` grain | One row per `campaign_name + channel` combination |
+| Original `campaign_id` | Renamed to `marketing_touchpoint_id` in staging |
+| Payment split | `dim_payment` holds descriptors; `fact_payments` holds payment_amount |
+| Return reason split | `dim_return_reason` holds reason categories; `fact_returns` holds refund_amount |
+| Unknown fallback rows | `-1` key in dim_customer, dim_product, dim_payment, dim_marketing_campaigns |
+| No unknown row in dim_return_reason | NULL reasons handled inline in staging; guaranteed join to dim |
+| Ghost and quality-flagged rows | Kept in fact tables and flagged — not deleted |
+| `order_id` on fact tables | Degenerate dimension — enables cross-fact joins without dim_order |
 
+---
 
-## 10. Dimension Table Validation
+## 9. Dimension Table Validation Results
 
-### 10.1 Marketing Campaign Dimension Validation
+### dim_marketing_campaigns
 
-After creating `mart.dim_marketing_campaigns`, the table was checked to confirm that the dimension was created correctly.
-
-### Checks performed
-
-The following checks were performed:
-
-* preview of the dimension table
-* total row count
-* existence of the Unknown Campaign fallback row
-* duplicate check for `campaign_name + channel`
-* NULL check for key dimension columns
-* comparison between staging campaign-channel combinations and dimension rows
-
-### Result
-
-
-| check | result |
+| Check | Result |
 |---|---:|
-| Total rows in `dim_marketing_campaigns` | 99 |
-| Unknown Campaign fallback rows | 1 |
+| Total rows | 99 |
+| Unknown fallback rows (`campaign_key = -1`) | 1 |
 | Duplicate `campaign_name + channel` combinations | 0 |
 | NULL values in required columns | 0 |
 | Unique campaign-channel combinations from staging | 98 |
-| Expected dimension rows including Unknown row | 99 |
 
-### Finding
-
-The validation confirms that `mart.dim_marketing_campaigns` was created successfully at the campaign-channel grain.
-
-The table contains one row per unique `campaign_name + channel` combination, plus one Unknown Campaign fallback row with `campaign_key = -1`.
-
-No duplicate campaign-channel combinations or NULL values were found in the required columns.
-
-### Modelling conclusion
-
-`dim_marketing_campaigns` is ready to be used as a dimension table for the future `fact_marketing_touchpoints` table.
-
-
-
-
-
-
+Validation confirms the table is at the correct grain with one row per `campaign_name + channel` plus one unknown fallback row.

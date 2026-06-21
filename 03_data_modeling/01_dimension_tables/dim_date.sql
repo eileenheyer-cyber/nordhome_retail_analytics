@@ -1,5 +1,6 @@
--- Create the date dimension table.
--- This table is generated as a calendar table, not copied directly from a raw source table.
+-- Generated as a calendar table from stg_orders date range — not sourced from a raw table.
+CREATE SCHEMA IF NOT EXISTS mart;
+
 DROP TABLE IF EXISTS mart.dim_date CASCADE;
 
 CREATE TABLE mart.dim_date (
@@ -42,18 +43,22 @@ INSERT INTO mart.dim_date (
 )
 
 WITH date_range AS (
-    -- Define the calendar range needed for the data model.
-    -- This ensures the date dimension covers all existing order dates.
-    SELECT
-        MIN(order_date) AS min_date,
-        MAX(order_date) AS max_date
-    FROM stg.stg_orders
-    WHERE order_date IS NOT NULL
+    -- Union all date columns across every fact source so dim_date covers the full range
+    -- needed for FK joins in fact_order_items, fact_payments, fact_returns, and fact_marketing_touchpoints.
+    SELECT MIN(dt) AS min_date, MAX(dt) AS max_date
+    FROM (
+        SELECT order_date    AS dt FROM stg.stg_orders             WHERE order_date    IS NOT NULL
+        UNION ALL
+        SELECT payment_date  AS dt FROM stg.stg_payments           WHERE payment_date  IS NOT NULL
+        UNION ALL
+        SELECT return_date   AS dt FROM stg.stg_returns            WHERE return_date   IS NOT NULL
+        UNION ALL
+        SELECT campaign_date AS dt FROM stg.stg_marketing_campaigns WHERE campaign_date IS NOT NULL
+    ) all_dates
 ),
 
 calendar_dates AS (
-    -- Generate a continuous list of dates between the first and last order date.
-    -- This avoids missing dates even if no order happened on a specific day.
+    -- GENERATE_SERIES ensures every calendar date is present even if no order occurred that day.
     SELECT
         GENERATE_SERIES(
             min_date,
@@ -64,33 +69,18 @@ calendar_dates AS (
 )
 
 SELECT
-    -- Convert the date into an integer key for joining with fact tables.
     TO_CHAR(full_date, 'YYYYMMDD')::INT AS date_key,
-
     full_date,
-
-    -- Extract calendar attributes for year, quarter, and month analysis.
-    EXTRACT(YEAR FROM full_date)::INT AS year,
+    EXTRACT(YEAR FROM full_date)::INT    AS year,
     EXTRACT(QUARTER FROM full_date)::INT AS quarter,
-    EXTRACT(MONTH FROM full_date)::INT AS month_number,
-
-    -- Month name is useful for readable reports and dashboards.
-    TRIM(TO_CHAR(full_date, 'Mon')) AS month_name,
-
-    -- Year-month is useful for monthly trend analysis.
-    TO_CHAR(full_date, 'YYYY-MM') AS year_month,
-
-    -- Extract day-level attributes for daily and weekday analysis.
-    EXTRACT(DAY FROM full_date)::INT AS day_of_month,
-    EXTRACT(ISODOW FROM full_date)::INT AS day_of_week_number,
-    TRIM(TO_CHAR(full_date, 'Day')) AS day_of_week_name,
-
-    -- Mark Saturday and Sunday as weekend days.
-    CASE
-        WHEN EXTRACT(ISODOW FROM full_date) IN (6, 7)
-        THEN TRUE
-        ELSE FALSE
-    END AS is_weekend
+    EXTRACT(MONTH FROM full_date)::INT   AS month_number,
+    TRIM(TO_CHAR(full_date, 'Mon'))      AS month_name,
+    TO_CHAR(full_date, 'YYYY-MM')        AS year_month,
+    EXTRACT(DAY FROM full_date)::INT     AS day_of_month,
+    -- ISODOW: 1=Monday … 7=Sunday (ISO standard, avoids locale differences)
+    EXTRACT(ISODOW FROM full_date)::INT  AS day_of_week_number,
+    TRIM(TO_CHAR(full_date, 'Day'))      AS day_of_week_name,
+    EXTRACT(ISODOW FROM full_date) IN (6, 7) AS is_weekend
 
 FROM calendar_dates;
 
