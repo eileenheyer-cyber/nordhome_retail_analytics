@@ -234,6 +234,21 @@ If one order contains three products, the fact table contains three rows for tha
 
 **Join path for return_reason_key:** Text-based join on `stg_returns.return_reason = dim_return_reason.return_reason`. The join is guaranteed to succeed because both tables source from `stg_returns`.
 
+**Validated integrity findings (EDA — 2026-06-23):**
+
+| Check | Result |
+|---|---|
+| Duplicate `return_id` values | 0 — every row is a unique physical return event |
+| Orders with both 'Returned' and 'Refunded' status | 0 — the two statuses represent distinct order lifecycles and never co-exist on the same order |
+| Orders with more than one return row | 44 — all have exactly 2 rows, both carrying the same `order_status`; represents two separate products returned from the same order |
+| Rows with `order_status = 'Unknown'` | 45 rows, €3,338 refund value (0.52% of total) — unmatched orders where `stg_orders` join found no record; included in refund aggregations but carry no order-level context |
+
+**`order_status` note:** `fact_returns` carries one status value not present in `fact_order_items` — `'Unknown'` (45 rows). This reflects returns whose originating order could not be found in `stg_orders`. The value defaults to `'Unknown'` via the `COALESCE` in the fact INSERT. Because this slice is 0.52% of refund value, it does not materially affect aggregations but should be excluded from order-level breakdowns.
+
+**`order_status` consistency in `fact_order_items`:** Separately confirmed that `order_status` is consistent within every `order_id` in `fact_order_items` (0 orders with mixed statuses). Status is an order-level attribute correctly denormalized onto the line-item fact.
+
+**Net revenue calculation:** Use `refund_amount` from this table — not status-based line_total deductions — when computing net revenue. See `docs/BUSINESS_METADATA.md` §5 (Net Revenue — Method A vs Method B Decision Record) for full rationale and quantified discrepancy analysis.
+
 ---
 
 ### 5.4 `fact_marketing_touchpoints`

@@ -155,22 +155,42 @@ If return data is not deducted, this should be called gross revenue or sales rev
 | Field          | Definition                                                                  |
 | -------------- | --------------------------------------------------------------------------- |
 | Business term  | Gross Revenue                                                               |
-| Meaning        | Revenue before returns, refunds, discounts, or cost deductions              |
-| Formula        | `quantity * unit_price`                                                     |
-| Used for       | Initial sales performance analysis                                          |
-| Important note | Gross revenue may overstate actual business performance if returns are high |
+| Meaning        | Revenue from orders that were actually charged — excludes Cancelled orders  |
+| Formula        | `SUM(line_total) WHERE order_status NOT IN ('Cancelled')`                   |
+| Covers         | Completed, Shipped, Processing, Refunded, Returned                          |
+| Excludes       | Cancelled orders — no charge was ever made                                  |
+| Used for       | Sales performance analysis, baseline for net revenue calculation            |
+| Important note | Gross revenue may overstate actual performance if returns are high           |
 
 ---
 
 ## Net Revenue
 
-| Field          | Definition                                            |
-| -------------- | ----------------------------------------------------- |
-| Business term  | Net Revenue                                           |
-| Meaning        | Revenue after deducting returns or refunds            |
-| Formula        | `gross_revenue - returned_revenue`                    |
-| Used for       | More realistic business performance analysis          |
-| Important note | Only calculate this if return/refund data is reliable |
+| Field          | Definition                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| Business term  | Net Revenue                                                                                  |
+| Meaning        | Revenue after deducting actual cash refunded to customers                                    |
+| Formula        | `SUM(line_total WHERE order_status NOT IN ('Cancelled')) − SUM(refund_amount FROM fact_returns)` |
+| Used for       | P&L reporting, finance reporting, realistic business performance analysis                    |
+| Important note | Use actual `refund_amount` from `fact_returns`, not status-based line_total deductions       |
+
+### Revenue Calculation Methods — Decision Record
+
+Two methods were evaluated for calculating net revenue:
+
+| Method | Formula | Deducts |
+|--------|---------|---------|
+| **Method A** (status-based) | `SUM(line_total)` for non-bad-status orders | Full `line_total` of Cancelled + Refunded + Returned orders |
+| **Method B** (cash-based) ✓ | Gross − `SUM(refund_amount)` | Actual cash refunded via `fact_returns` |
+
+**Decision: Method B is the standard for this project.**
+
+Reason: Method A systematically over-deducts because it subtracts the full line total of Cancelled orders (which were never charged) and the full line total of Refunded/Returned orders (which may have only been partially refunded). Analysis across 42 months (Jan 2021–Jun 2024) showed a consistent discrepancy of ~€89K/month between the two methods, split approximately:
+
+- **~60% partial refund gap** — Refunded/Returned order `line_total` exceeded actual `refund_amount` (e.g. restocking fees, partial goodwill refunds)
+- **~40% cancelled order value** — Cancelled orders deducted in full by Method A but not in `fact_returns` at all
+
+Method A remains valid for **operational and fulfilment reporting** — e.g. measuring total order value at risk of reversal.
 
 ---
 
@@ -406,3 +426,4 @@ Dashboard users should be aware that:
 | Date       | Change                                     |
 | ---------- | ------------------------------------------ |
 | 2026-06-20 | Added market list (10 European markets, confirmed Poland not Finland); updated business context |
+| 2026-06-23 | Updated Gross Revenue and Net Revenue definitions; added Method A vs Method B decision record — Method B (cash-based, using `refund_amount` from `fact_returns`) adopted as project standard for P&L reporting |

@@ -77,8 +77,9 @@ SELECT
     COALESCE(o.country,        'Unknown')           AS country,
     COALESCE(o.sales_channel,  'Unknown')           AS sales_channel,
     r.refund_amount,
-    COALESCE(r.ghost_product_flag, FALSE) AS ghost_product_flag,
-    COALESCE(r.ghost_order_flag,   FALSE) AS ghost_order_flag
+    COALESCE(r.ghost_product_flag, FALSE)                        AS ghost_product_flag,
+    CASE WHEN o.order_id IS NULL THEN TRUE
+         ELSE COALESCE(r.ghost_order_flag, FALSE) END            AS ghost_order_flag
 FROM stg.stg_returns                  r
 LEFT JOIN stg.stg_orders              o    ON r.order_id      = o.order_id
 LEFT JOIN mart.dim_customer           dc   ON o.customer_id   = dc.customer_id
