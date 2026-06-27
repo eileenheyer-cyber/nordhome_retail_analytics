@@ -144,7 +144,45 @@ All flags originate in the `stg` layer — they are computed during staging. Onl
 | `payment_before_order_flag` | fact_payments | The payment_amount is still valid regardless of date order — this is a timing anomaly, not a measure problem |
 | `return_before_order_flag` | fact_returns | The refund_amount is still valid regardless of date order — same reasoning as above |
 
-### 4.7 Unknown fallback rows (-1)
+### 4.7 Age group logic in dim_customer
+
+`age_group` is a derived column in `dim_customer` computed from `birth_year` at load time.
+
+**Analysis year:** Age buckets are calculated against a fixed reference year of **2024** (the latest year present in the dataset), not `CURRENT_DATE`. This ensures the grouping is stable and reproducible regardless of when the table is rebuilt. The reference year is defined once via `CROSS JOIN (SELECT 2024 AS analysis_year) AS p` in the INSERT SELECT and referenced as `p.analysis_year` throughout the CASE expression.
+
+**Buckets:**
+
+| age_group | birth_year range | approx. age in 2024 |
+|-----------|-----------------|---------------------|
+| Unknown | NULL or < 1900 | — |
+| Under 18 | > 2006 | < 18 |
+| 18-29 | 1995–2006 | 18–29 |
+| 30-39 | 1985–1994 | 30–39 |
+| 40-49 | 1975–1984 | 40–49 |
+| 50-59 | 1965–1974 | 50–59 |
+| 60-69 | 1955–1964 | 60–69 |
+| 70+ | ≤ 1954 | 70+ |
+
+**Data quality floor:** `birth_year < 1900` is bucketed as `'Unknown'`. The source data contains 44 rows with placeholder birth years of 1800 (23 rows) and 1890 (21 rows) — clearly invalid data entry defaults, not real dates. This floor removes them from analysis buckets without affecting valid older customers (born 1900+).
+
+**Why 60+ was split into 60-69 and 70+:** The original single `60+` bucket contained 2,090 customers (25% of all real customers), nearly double the size of every other group. Splitting it produces a more balanced distribution for EDA charts and avoids visual skew.
+
+**Resulting distribution (2024 analysis year):**
+
+| age_group | customers | % |
+|-----------|-----------|---|
+| 18-29 | 1,505 | 18.0% |
+| 30-39 | 1,353 | 16.2% |
+| 40-49 | 1,319 | 15.8% |
+| 50-59 | 1,356 | 16.2% |
+| 60-69 | 1,406 | 16.8% |
+| 70+ | 684 | 8.2% |
+| Unknown | 714 | 8.5% |
+| Under 18 | 27 | 0.3% |
+
+---
+
+### 4.8 Unknown fallback rows (-1)
 
 Most dimension tables include an unknown fallback row with surrogate key `-1`. This row is used when a fact record cannot be matched to a valid dimension record — for example, ghost customer references in orders, or orphaned product IDs in returns.
 
@@ -353,6 +391,9 @@ GROUP BY dc.customer_id;
 | Unknown fallback rows | `-1` key in dim_customer, dim_product, dim_payment, dim_marketing_campaigns |
 | No unknown row in dim_return_reason | NULL reasons handled inline in staging; guaranteed join to dim |
 | Ghost and quality-flagged rows | Kept in fact tables and flagged — not deleted |
+| `age_group` reference year | Fixed at 2024 (dataset max year), not CURRENT_DATE — stable across rebuilds |
+| `age_group` buckets | 8 buckets: Unknown, Under 18, 18-29, 30-39, 40-49, 50-59, 60-69, 70+ |
+| `birth_year < 1900` | Bucketed as Unknown — catches 1800/1890 placeholder values from source data |
 | `order_id` on fact tables | Degenerate dimension — enables cross-fact joins without dim_order |
 
 ---
