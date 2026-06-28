@@ -36,13 +36,27 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Chart:** [Quarterly net revenue by year](figures/quarterly.png)
 
+**Further investigation:** 
+
 ---
 
 ## 2. Customers
 
-- 
-- 
-- 
+### Q1: How are NordHome's customers distributed across markets and countries?
+
+**Insight:** NordHome's customer base is almost uniformly spread across all 10 countries, with each accounting for roughly 9–10% of customers (Norway leads at 10.4%, Austria sits lowest at 9.4% — a spread of under 1 percentage point). At the market level, Nordics (30.3%) and DACH (29.9%) together hold just under 60% of the customer base, with Benelux (19.9%) and Other — France and Poland — (20.0%) splitting the remaining 40% evenly. No single market or country dominates.
+
+**Chart:** [Customer distribution by market and country](figures/customer_country.png)
+
+---
+
+### Q2: How are NordHome's customers distributed across age groups?
+
+**Insight:** The age mix is remarkably balanced across adults under 70, with each group accounting for 17–20% of known customers (18–29 leads at 19.7%, 40–49 sits lowest at 17.3%). The only clear drop-off is the 70+ group at 9.0% — roughly half the share of any other cohort. Under-18 and unknown age groups are excluded. NordHome's customer base has no dominant age segment among working-age adults.
+
+**Chart:** [Customer distribution by age group](figures/customer_age.png)
+
+**Further investigation:** Combining demographic and geographic dimensions with purchasing behavior to identify more meaningful customer segments. Purchasing behavior can include order frequency, average order value, total revenue contribution, product category preference, basket size, discount usage, return behavior, and loyalty membership.
 
 ---
 
@@ -52,6 +66,8 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 - 
 - 
 
+**Further investigation:** 
+
 ---
 
 ## 4. Payments
@@ -59,6 +75,8 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 - 
 - 
 - 
+
+**Further investigation:** 
 
 ---
 
@@ -68,6 +86,8 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 - 
 - 
 
+**Further investigation:** 
+
 ---
 
 ## 6. Marketing
@@ -75,6 +95,8 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 - 
 - 
 - 
+
+**Further investigation:** 
 
 ---
 
@@ -84,3 +106,12 @@ Questions raised during EDA that need deeper investigation in the analysis folde
 
 - 
 - 
+
+
+## limitations
+
+This dataset was generated for analysis practice. Therefore, some distributions, such as customer age groups and country distribution, may have been intentionally created or balanced during the data generation process.
+
+As a result, demographic and geographic patterns should not be interpreted as strong evidence of real market behavior. For example, a balanced age distribution or a specific country share may reflect the design of the synthetic dataset rather than actual customer demand.
+
+These findings are still useful for EDA because they help understand the structure of the dataset and identify potential segmentation dimensions. However, any business conclusion based on age or country distribution should be treated carefully and validated with real customer data.
