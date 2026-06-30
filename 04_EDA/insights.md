@@ -60,6 +60,17 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 ---
 
+### Q3: Do loyalty programme members place more orders and spend more per order than non-members?
+
+**Insight:** The loyalty group does not show a clear advantage in total revenue, average order value, or median order value. Loyalty members and non-members generate nearly identical revenue (€13.03M vs €13.18M) and average order value (€1,141 vs €1,137). This suggests that loyalty membership does not meaningfully change order-level spending — loyalty members do not appear to place larger baskets than non-members. The fact that average order value is considerably higher than median order value in both groups also points to a right-skewed distribution: most orders cluster near the median, while a small number of high-value orders pull the average upward.
+
+**Business implication:** Loyalty membership may not be effective at increasing basket size. However, this does not mean the loyalty programme has no value. Its impact may appear in other customer behaviours, such as repeat purchase frequency, retention, churn reduction, or customer lifetime value.
+
+**Recommended next step**
+
+Further analysis should investigate whether loyalty members purchase more frequently, stay active longer, or have higher customer lifetime value compared with non-members.
+---
+
 ## 3. Products
 
 - 
