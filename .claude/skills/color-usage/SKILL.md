@@ -42,6 +42,7 @@ If the user's existing code uses a different color per category by default (comm
 - **Red = negative/warning, green = positive/good** — don't repurpose these for arbitrary categorical distinctions. A red bar that doesn't mean "bad" fights the reader's instinct.
 - **Max 2–3 colors per chart.** More than that is usually a sign color is being used to separate categories that should be separated by direct labeling, sorting, or faceting instead.
 - **Check colorblind accessibility** whenever red and green are both present and meaningful — add a secondary cue (position, label, pattern) so the distinction doesn't rely on color alone.
+- **Don't reuse the accent color to emphasize text.** The accent color's job is to mark the data element the Big Idea is about. If that same color also highlights a word in the title or subtitle, it's doing two jobs at once — the reader's eye tries to bind the colored text to the colored data, and the signal weakens in both places. To emphasize a word or number in a title, subtitle, or callout, reach for weight or size against a neutral field instead — not the accent color. (This is the same one-color-one-meaning logic applied to text rather than bars.)
 
 ## Before reaching for color, consider these alternatives
 

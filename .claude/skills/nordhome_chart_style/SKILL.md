@@ -106,6 +106,31 @@ fig.text(SUBTITLE_X, SUBTITLE_Y,
 
 ---
 
+## Emphasizing what matters in the subtitle
+
+**Don't emphasize inside the title.** The title is already the largest, boldest,
+darkest element on the chart — there's no neutral field for a highlighted word to
+contrast against. The title as a whole is the highlight. Hard rule, not a suggestion.
+
+**Emphasize in the subtitle instead.** The subtitle is `TEXT_GREY` (`#5A5A5A`) —
+a neutral field — so bolding a word, phrase, or figure makes it stand out. Limit
+bold to the one or two things that carry the Big Idea. If half the subtitle is bold,
+nothing is emphasized. Same grey-first logic as `color-usage`, applied to text.
+
+**Use weight, never the accent color.** The accent color marks data elements;
+applying it to subtitle text gives one color two meanings. Emphasize with
+bold/weight only. See `color-usage` → "Don't reuse the accent color to emphasize text."
+
+**If the emphasis is a figure, verify it first.** A highlighted number invites
+scrutiny. Recompute it from the source values and confirm the title, subtitle,
+and chart data all state the same value at the same rounding before emphasizing.
+
+> `fig.text` does not support inline bold in a single string. To bold one segment,
+> split the subtitle into two `fig.text` calls placed at the correct x-offset, or
+> use `ax.annotate` with `fontweight='bold'` for the emphasized part.
+
+---
+
 ## Layout pattern
 
 Always call `fig.subplots_adjust` after all chart elements are drawn:
@@ -236,3 +261,36 @@ Rules:
 - Use blue for the main trend.
 - Use grey for comparison lines.
 - Subtitle should explain the trend pattern.
+
+
+## Mandatory post-build review (do not skip)
+
+After creating any chart with this skill, you are NOT done. Before presenting
+the chart to the user, you MUST read and validate it against these four skills,
+in this order. Read each `SKILL.md` fresh — do not rely on memory of them.
+
+1. **chart-selection** (`skills/chart-selection/SKILL.md`)
+   - Name the relationship (comparison / trend / distribution / composition /
+     correlation). Confirm the chart type matches it.
+   - Confirm no pie/radar/3D/dual-axis chart snuck in where a simpler type wins.
+
+2. **color-usage** (`skills/color-usage/SKILL.md`)
+   - Grey-first: is everything grey except the 1–2 elements the Big Idea is about?
+   - Is the accent color used for the same meaning as elsewhere?
+   - Would the point survive for a colorblind reader?
+
+3. **annotation** (`skills/annotation/SKILL.md`)
+   - Does the title state the insight, not just describe the axes?
+   - Are only the 1–2 things that matter labeled directly?
+   - Can the legend be replaced by direct labels?
+   - Do the title and subtitle agree with each other and with the data
+     (same ratio, same rounding, same units)?
+
+4. **decluttering** (`skills/decluttering/SKILL.md`)
+   - Run the "would I miss it?" test on gridlines, borders, tick marks, and axes.
+   - If values are labeled directly, are redundant axes/gridlines removed?
+
+### Output of this review
+- If the chart passes all four, state briefly that it was checked and passed.
+- If any check fails, FIX the chart, then re-run the failing check.
+- Report each fix in one line (e.g. "color-usage: made non-highlighted bars grey").

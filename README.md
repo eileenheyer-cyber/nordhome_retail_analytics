@@ -42,6 +42,12 @@ The business tracks:
 
 > The `data/raw/` and `data/cleaned/` folders are excluded from version control. Run the generator script (see [Reproducing the Dataset](#reproducing-the-dataset)) to populate them locally.
 
+> **Dataset limitation — distributions (noted 2026-07-01):** This dataset is synthetically generated.
+> Distributions across segments (age groups, countries, sales channels, customer types)
+> tend to be more balanced than real retail data. Differences between groups are often
+> small (< 10%) and may reflect the generator's parameters rather than genuine customer
+> behaviour. Treat cross-segment comparisons as directional, not conclusive.
+
 ---
 
 ## Data Pipeline
