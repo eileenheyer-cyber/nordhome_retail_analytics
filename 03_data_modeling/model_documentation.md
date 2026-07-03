@@ -182,7 +182,34 @@ All flags originate in the `stg` layer — they are computed during staging. Onl
 
 ---
 
-### 4.8 Unknown fallback rows (-1)
+### 4.8 Duplicate customer identity resolution
+
+Some real customers registered more than once under different `customer_id` values, producing two separate rows (and two `customer_key` values) in `dim_customer` for the same real person.
+
+**Finding (EDA — 2026-07-03):** 148 duplicate-email groups exist among 8,364 real customers (all groups size 2, so 296 rows / ~3.5% of the customer base are affected). Within these groups:
+- 100% (148/148) also match on `full_name`
+- 85% (126/148) also match on `phone` and `registration_date`
+
+This is strong evidence of true duplicate registrations, not coincidental email reuse.
+
+**Business impact:** 91% of duplicate groups (135/148) placed orders under *both* keys — meaning real revenue is genuinely split across two customer records, not just a harmless duplicate signup. Average combined revenue per real person across their two keys is €5,663 — split in half, each phantom "customer" lands right inside the normal per-customer revenue range (€2,653–2,892 across age groups), so these duplicates do not stand out as outliers. They silently inflate customer counts and silently understate historical/predicted CLV for the affected customers.
+
+**Decision:** Do not merge or delete rows. Instead, two additive columns were added to `dim_customer`:
+
+| Column | Meaning |
+|---|---|
+| `duplicate_customer_flag` | `TRUE` for the later-registered sibling(s) in a same-email group |
+| `canonical_customer_key` | Points to the earliest-registered `customer_key` in the group (or itself, if not a duplicate) |
+
+Canonical row = earliest `registration_date` (`NULLS LAST`), lowest `customer_key` as tiebreaker — consistent with this project's existing dedup convention (`ROW_NUMBER() ... ASC NULLS LAST`, keep first-recorded).
+
+**Reason:** Matches this project's data quality philosophy — detect, count, assess impact, document, and give analysts a way to opt in to the corrected view, rather than silently changing historical figures. Every customer (not just duplicates) gets a `canonical_customer_key`, so it's safe to `GROUP BY canonical_customer_key` universally instead of `customer_key` for any person-level metric (customer counts, historical CLV, predicted CLV).
+
+**Implementation:** `03_data_modeling/01_dimension_tables/dim_customer_duplicate_resolution.sql` — additive `ALTER TABLE ADD COLUMN` + `UPDATE` only. Does not touch `fact_order_items` or its FK to `dim_customer.customer_key`.
+
+**Trade-off / limitation:** Matching is email-based only. A real duplicate that used two different emails would not be caught by this logic. Conversely, if two unrelated people ever shared a household email (not observed in this dataset, but theoretically possible), they would be incorrectly flagged as duplicates. Given the 100% name-match rate found here, this risk is currently theoretical, not observed.
+
+### 4.9 Unknown fallback rows (-1)
 
 Most dimension tables include an unknown fallback row with surrogate key `-1`. This row is used when a fact record cannot be matched to a valid dimension record — for example, ghost customer references in orders, or orphaned product IDs in returns.
 
@@ -395,6 +422,7 @@ GROUP BY dc.customer_id;
 | `age_group` buckets | 8 buckets: Unknown, Under 18, 18-29, 30-39, 40-49, 50-59, 60-69, 70+ |
 | `birth_year < 1900` | Bucketed as Unknown — catches 1800/1890 placeholder values from source data |
 | `order_id` on fact tables | Degenerate dimension — enables cross-fact joins without dim_order |
+| Duplicate customer identity (2026-07-03) | Added `duplicate_customer_flag` + `canonical_customer_key` to dim_customer — additive only, no rows merged or deleted |
 
 ---
 
@@ -419,6 +447,8 @@ Validation confirms the table is at the correct grain with one row per `campaign
 | Total rows | 8,365 |
 | Unknown fallback rows (`customer_key = -1`) | 1 |
 | Duplicate `customer_id` values | 0 |
+| Duplicate-identity customers (`duplicate_customer_flag = true`, 2026-07-03) | 148 |
+| `canonical_customer_key` populated for all real customers | Yes |
 
 ### dim_product
 

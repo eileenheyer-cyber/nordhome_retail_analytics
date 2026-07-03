@@ -35,7 +35,11 @@ CREATE TABLE mart.dim_customer (
     missing_registration_date_flag BOOLEAN,
 
     is_unknown_customer BOOLEAN,
-    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Populated by dim_customer_duplicate_resolution.sql, run after this build.
+    duplicate_customer_flag BOOLEAN NOT NULL DEFAULT FALSE,
+    canonical_customer_key  INT
 );
 
 -- Unknown fallback row

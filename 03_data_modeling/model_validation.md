@@ -273,7 +273,76 @@ FROM mart.fact_marketing_touchpoints;
 
 ---
 
-## 7. Validation Summary
+## 7. Duplicate Customer Identity Resolution (2026-07-03)
+
+**Purpose:** Confirm that duplicate customer identities (same real person registered under two different `customer_id` values) are correctly flagged and resolved to a canonical key after running `dim_customer_duplicate_resolution.sql`.
+
+```sql
+-- Duplicate-email groups and match strength
+WITH dup_emails AS (
+    SELECT email
+    FROM mart.dim_customer
+    WHERE is_unknown_customer = false AND email IS NOT NULL
+    GROUP BY email
+    HAVING COUNT(*) > 1
+),
+dup_rows AS (
+    SELECT dc.* FROM mart.dim_customer dc JOIN dup_emails de ON dc.email = de.email
+),
+group_stats AS (
+    SELECT email, COUNT(*) AS n_rows,
+        COUNT(DISTINCT full_name) AS n_distinct_names,
+        COUNT(DISTINCT phone) AS n_distinct_phones,
+        COUNT(DISTINCT registration_date) AS n_distinct_reg_dates
+    FROM dup_rows
+    GROUP BY email
+)
+SELECT COUNT(*) AS total_dup_groups,
+    SUM(CASE WHEN n_distinct_names = 1 THEN 1 ELSE 0 END) AS same_name_groups,
+    SUM(CASE WHEN n_distinct_phones = 1 THEN 1 ELSE 0 END) AS same_phone_groups,
+    SUM(CASE WHEN n_distinct_reg_dates = 1 THEN 1 ELSE 0 END) AS same_reg_date_groups
+FROM group_stats;
+
+-- Post-resolution check: flag counts and canonical key coverage
+SELECT
+    COUNT(*) FILTER (WHERE duplicate_customer_flag = true)      AS flagged_duplicates,
+    COUNT(*) FILTER (WHERE canonical_customer_key IS NULL
+                      AND is_unknown_customer = false)          AS missing_canonical_key
+FROM mart.dim_customer;
+
+-- Corrected vs. uncorrected average revenue per customer
+SELECT
+    ROUND(SUM(foi.line_total) / COUNT(DISTINCT foi.customer_key), 2)        AS uncorrected_avg_revenue,
+    ROUND(SUM(foi.line_total) / COUNT(DISTINCT dc.canonical_customer_key), 2) AS corrected_avg_revenue
+FROM mart.fact_order_items foi
+JOIN mart.dim_customer dc ON foi.customer_key = dc.customer_key
+WHERE dc.is_unknown_customer = false;
+```
+
+**Result:**
+
+| Check | Result |
+|---|---:|
+| Total duplicate-email groups | 148 |
+| Group size | All size 2 (296 rows affected, ~3.5% of 8,364 real customers) |
+| Groups also matching `full_name` | 148 / 148 (100%) |
+| Groups also matching `phone` | 126 / 148 (85%) |
+| Groups also matching `registration_date` | 126 / 148 (85%) |
+| Groups with orders placed under both keys | 135 / 148 (91%) |
+| Avg combined revenue per real person (both keys) | €5,663.07 |
+| `flagged_duplicates` after resolution script | 148 (confirmed) |
+| `missing_canonical_key` after resolution script | 0 (confirmed) |
+| `broken_canonical_links` (a duplicate pointing to another duplicate) | 0 (confirmed) |
+| Customer count: uncorrected (`customer_key`) vs. corrected (`canonical_customer_key`) | 8,166 → 8,031 (−135, exactly matches the 135/148 groups with orders under both keys) |
+| Avg revenue per customer: uncorrected vs. corrected | €3,209.51 → €3,263.46 (+1.7%) |
+
+**Interpretation:** The high match rate on name/phone/registration_date confirms these are genuine duplicate registrations, not coincidental email reuse. 91% of duplicate groups placed orders under both keys, meaning real customer revenue was being split across two records — each half landing inside the normal per-customer revenue range, so the distortion was not visible as an outlier. After running the resolution script, every real customer has a `canonical_customer_key`, and exactly 148 rows are flagged as duplicates (matching the group count, since every group has exactly one non-canonical sibling). The post-run customer count drop of exactly 135 independently confirms the earlier finding, computed a different way. See `model_documentation.md` §4.8 for the full modelling decision and rationale.
+
+**Action for downstream analysis:** Any query computing customer counts, historical CLV, or predicted CLV should `GROUP BY canonical_customer_key` instead of `customer_key` going forward. As of this validation, `04_EDA/nordhome_eda.ipynb` and `05_customer_analysis/customer_ltv_prediction.ipynb` still use `customer_key` and have not yet been updated.
+
+---
+
+## 8. Validation Summary
 
 | Check | Tables covered | Status | Notes |
 |---|---|---|---|
@@ -284,3 +353,4 @@ FROM mart.fact_marketing_touchpoints;
 | Unknown member counts | All 4 facts | Pass | See section 5 for full breakdown |
 | Measure sanity | All 4 facts | Pass | No negative or NULL measures; payment and refund totals are plausible |
 | Ghost product flag in fact_returns | fact_returns | Flag | 1,835 rows (30.1%) are ghost products — cannot be attributed to a category |
+| Duplicate customer identity resolution (2026-07-03) | dim_customer | Pass (resolved) | 148 customers (3.5%) had duplicate registrations; 91% had revenue split across both keys. Resolved via `duplicate_customer_flag` / `canonical_customer_key`, confirmed by re-running validation post-fix. Downstream notebooks not yet updated to use them |

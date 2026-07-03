@@ -457,6 +457,34 @@ Customers with `customer_key = -1` should not be included in customer-level CLV,
 
 ---
 
+## Predicted Customer Lifetime Value
+
+| Field          | Definition                                                                 |
+| -------------- | --------------------------------------------------------------------------- |
+| Business term  | Predicted Customer Lifetime Value                                          |
+| Short name     | Predicted CLV / LTV                                                        |
+| Meaning        | Estimated future value a customer is expected to generate, based on observed purchase behavior |
+| Formula        | `Average Order Value x Purchase Frequency x Customer Lifespan` (heuristic method) |
+| Grain          | Customer level (or customer segment level, e.g. age group, loyalty status) |
+| Used for       | Retention prioritization, marketing spend allocation, forward-looking customer segmentation |
+| Important note | This is an estimate, not a guaranteed future value                        |
+
+Predicted CLV is the forward-looking counterpart to Historical CLV above.
+
+Where Historical CLV answers *"what has this customer spent so far?"*, Predicted CLV answers *"what is this customer likely to spend in the future?"*
+
+Important note on Customer Lifespan:
+
+Customer Lifespan cannot be observed directly for customers who are still active, because their final purchase date is unknown (a censored observation). Any lifespan value used in the formula is an estimate, not a measured fact, and must be documented clearly wherever it is used.
+
+Important note:
+
+The same exclusion rules as Historical CLV apply: customers with `customer_key = -1` should not be included in Predicted CLV analysis.
+
+See `05_customer_analysis/customer_ltv_prediction.ipynb` for the working analysis.
+
+---
+
 ## Churn Risk
 
 | Field              | Definition                                                                 |
@@ -601,7 +629,8 @@ This supports traceability and prevents silent data loss.
 | Which categories perform best?                | Revenue by category, Gross Margin by category | Requires valid product-category mapping and cost for margin |
 | Which products create high refund impact?     | Revenue Return Rate            | Refund amount divided by gross sales revenue              |
 | Which products are returned often?            | Item Return Rate               | Requires reliable return data                             |
-| Which customers are most valuable?            | Historical CLV                 | Requires valid customer matching                          |
+| Which customers are most valuable so far?     | Historical CLV                 | Requires valid customer matching                          |
+| Which customers are likely to be most valuable in the future? | Predicted CLV  | Heuristic estimate; requires a documented lifespan assumption |
 | Which customers may churn?                    | Churn Risk                     | Requires clear inactivity threshold or prediction window  |
 | How much revenue is at risk?                  | Potential Revenue at Risk      | Requires expected future revenue and, if model-based, churn probability |
 
@@ -651,3 +680,4 @@ Dashboard users should be aware that:
 | 2026-06-20 | Added market list: 10 European markets, confirmed Poland not Finland; updated business context |
 | 2026-06-23 | Updated Gross Revenue and Net Revenue definitions; added Method A vs Method B decision record — Method B, cash-based using `refund_amount` from `fact_returns`, adopted as project standard for net revenue reporting |
 | 2026-06-24 | Added VAT and cost assumptions; renamed revenue KPIs for clearer business meaning; added Gross Profit, Gross Margin, Gross AOV, Net AOV, Gross Units Sold, Net Units Sold, Historical CLV, and Potential Revenue at Risk definitions |
+| 2026-07-03 | Added Predicted Customer Lifetime Value definition (heuristic: AOV x Frequency x Lifespan) as the forward-looking counterpart to Historical CLV; noted censoring limitation on lifespan; linked to `customer_ltv_prediction.ipynb` |
