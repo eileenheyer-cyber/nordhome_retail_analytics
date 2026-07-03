@@ -10,7 +10,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Insight:** Gross and net revenue move closely together month over month. Over the full period (Jan 2021 – Jun 2024), total gross revenue is €24.83M and financial net revenue is €24.24M. The average refund deduction rate is 2.4%, meaning actual cash refunds are small relative to gross revenue. No major structural breaks or prolonged declines are visible in the monthly trend.
 
-**Chart:** [Monthly gross and net revenue line chart](figures/monthly.png)
+**Chart:** ![Monthly gross and net revenue line chart](figures/monthly.png)
 
 ---
 
@@ -18,7 +18,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Insight:** No single country dominates. The top three markets are Denmark (€2.97M, 11.1%), France (€2.75M, 10.3%), and Poland (€2.68M, 10.1%), with the remaining countries spread evenly below. Sales channels are nearly identical in volume: Marketplace 25.5%, Phone 25.0%, Mobile App 24.8%, Website 24.8%. Revenue is structurally well distributed across both dimensions.
 
-**Chart:** [Revenue by country and sales channel](figures/country.png)
+**Chart:** ![Revenue by country and sales channel](figures/country.png)
 
 ---
 
@@ -26,7 +26,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Insight:** Order status impact is stable at around 16–17% of potential order value each year. Cancelled orders account for roughly €0.5–0.6M per year; returned and refunded order value adds another €0.7–0.8M. However, actual cash refunds (from `fact_returns.refund_amount`) total only €0.59M across the full period — a 2.4% deduction rate. The large gap between full order value of Returned/Refunded orders and actual refund amounts confirms that most returns result in only partial refunds.
 
-**Chart:** [Order status impact stacked bar chart](figures/status_impact.png)
+**Chart:** ![Order status impact stacked bar chart](figures/status_impact.png)
 
 ---
 
@@ -34,7 +34,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Insight:** No stable seasonal peak exists across complete years. Q3 was the strongest quarter in 2021 and 2023, while Q2 led in 2022. The highest single quarter across the dataset is 2022 Q2 at €1.72M. 2024 is excluded from seasonal comparison as it only covers Q1–Q2. Year-to-year variation is more prominent than any consistent quarterly pattern.
 
-**Chart:** [Quarterly net revenue by year](figures/quarterly.png)
+**Chart:** ![Quarterly net revenue by year](figures/quarterly.png)
 
 **Further investigation:** 
 
@@ -46,7 +46,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Insight:** NordHome's customer base is almost uniformly spread across all 10 countries, with each accounting for roughly 9–10% of customers (Norway leads at 10.4%, Austria sits lowest at 9.4% — a spread of under 1 percentage point). At the market level, Nordics (30.3%) and DACH (29.9%) together hold just under 60% of the customer base, with Benelux (19.9%) and Other — France and Poland — (20.0%) splitting the remaining 40% evenly. No single market or country dominates.
 
-**Chart:** [Customer distribution by market and country](figures/customer_country.png)
+**Chart:** ![Customer distribution by market and country](figures/customer_country.png)
 
 ---
 
@@ -54,7 +54,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Insight:** The age mix is remarkably balanced across adults under 70, with each group accounting for 17–20% of known customers (18–29 leads at 19.7%, 40–49 sits lowest at 17.3%). The only clear drop-off is the 70+ group at 9.0% — roughly half the share of any other cohort. Under-18 and unknown age groups are excluded. NordHome's customer base has no dominant age segment among working-age adults.
 
-**Chart:** [Customer distribution by age group](figures/customer_age.png)
+**Chart:** ![Customer distribution by age group](figures/customer_age.png)
 
 **Further investigation:** Combining demographic and geographic dimensions with purchasing behavior to identify more meaningful customer segments. Purchasing behavior can include order frequency, average order value, total revenue contribution, product category preference, basket size, discount usage, return behavior, and loyalty membership.
 
@@ -69,6 +69,31 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 **Recommended next step**
 
 Further analysis should investigate whether loyalty members purchase more frequently, stay active longer, or have higher customer lifetime value compared with non-members.
+
+---
+
+### Q4: What share of customers bought more than once, and how much more do repeat buyers spend on average compared to one-time buyers?
+
+**Insight:** Repeat buyers dominate the customer base — 6,789 customers (85.2%) placed more than one order, versus 1,181 one-time buyers (14.8%). Repeat buyers also generate far more value per customer: €3,117 on average across 3.62 orders, compared to €901 for one-time buyers — a 3.5× difference. Most of NordHome's revenue is driven by customers who return, not by single-purchase acquisition.
+
+**Chart:** ![Repeat vs one-time buyer comparison](figures/buyer_type.png)
+
+**Limitation:** This only measures order count and total spend, not the time between orders — a customer who places two orders in the same week counts as a "repeat buyer" the same as one who returns over years.
+
+**Further investigation:** Look at the time gap between first and second orders to separate genuine repeat behaviour from orders placed close together (e.g. split orders).
+
+---
+
+### Q5: Which age group has the highest average revenue per customer?
+
+**Insight:** The 30–39 age group has the highest average revenue per customer at €2,949, compared with €2,700 for the lowest group (18–29). The spread across all six age groups is under 10% (8.5 percentage points), so age alone is not a strong differentiator of customer value — every group sits in a fairly narrow €2,700–€2,950 band.
+
+**Chart:** ![Average revenue per customer by age group](figures/ltv_by_age_group.png)
+
+**Limitation:** Because this dataset is generated, the narrow, fairly even spread across age groups may reflect the data generation process rather than a real customer behaviour pattern.
+
+**Further investigation:** Combine age group with other dimensions (loyalty status, order frequency, country) to check whether age becomes a stronger differentiator once customers are segmented further.
+
 ---
 
 ## 3. Products
