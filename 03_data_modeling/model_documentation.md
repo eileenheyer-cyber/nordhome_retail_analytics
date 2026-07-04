@@ -70,6 +70,8 @@ Tables must be created in this sequence. Each layer depends on the previous one.
 
 ### 4.1 dim_order removed — order attributes denormalized onto fact
 
+**Grain of `fact_order_items`:** one row per product line within one order.
+
 A `dim_order` table was considered but removed during modelling review.
 
 In a Kimball star schema, orders are facts (they carry measures: revenue, quantity), not dimensions. Storing them as a separate dimension creates an unnecessary outrigger join on every query.

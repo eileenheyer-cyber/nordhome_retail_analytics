@@ -98,9 +98,33 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 ## 3. Products
 
-- 
-- 
-- 
+### Q1: Which individual products are the top 10 revenue contributors, and which categories do they come from?
+
+**Insight:** Gifts products dominate the top 10 best-sellers by revenue — 5 of the top 10 products belong to the Gifts category, including the single highest earner (Gourmet Hamper XL, €179K). Beauty, Lifestyle, and Home each contribute only 1–2 products to the top 10, with none matching Gifts' concentration at the top of the ranking.
+
+**Evidence:** The top 3 products by revenue are all Gifts (Gourmet Hamper XL €179K, Candle Collection Mini €177K, Candle Collection Organic €165K) before the first non-Gifts product appears (Shower Oil Organic, Beauty, €145K). The lowest of the top 10 (Woven Basket XL, Home) still earns €121K — a fairly tight band across all ten products (top is only 1.48× the tenth).
+
+**Chart:** ![Top 10 products by revenue](figures/top10_products_revenue.png)
+
+**Limitation:** This ranks individual products, not whole categories — Gifts' strong presence here reflects a handful of stand-out SKUs, not proof that Gifts outperforms every other category in total revenue overall.
+
+**Further investigation:** Compare this product-level ranking against total category revenue (not just top-10 presence) to check whether Gifts' strength here is driven by a few stand-out products or reflects genuinely stronger category-wide performance.
+
+---
+
+### Q2: Which product categories have the highest return rate, and where is the financial (refund) impact concentrated?
+
+**Insight:** Kitchen has the highest item return rate at 0.98%, and Gifts ties with Kitchen for the highest total refund value (~€131K each) — despite Gifts having the *lowest* return rate of all categories (0.77%). Return rate and refund value answer different business questions: Gifts is likely higher-priced and higher-volume, so even a below-average return rate still produces above-average refund euros.
+
+**Evidence:** Return rate ranges from 0.77% (Gifts) to 0.98% (Kitchen) — a narrow 0.21 percentage-point band across all 5 categories. Total refund value ranges from €121K (Home) to €131K (Gifts and Kitchen, tied within 0.18%).
+
+**Chart:** ![Return rate and refund value by category](figures/return_rate_and_refund_value_by_category.png)
+
+**Limitation:** All five categories sit within a narrow band on both metrics — the spread is modest relative to typical return-rate variance. Because this dataset is generated, such an evenly clustered pattern may reflect the data generation process rather than a real product-quality signal, and the 0.18% gap between Gifts and Kitchen should not be read as a meaningful ranking.
+
+**Further investigation:** Compute return rate and refund value per unit returned at the product level (not just category) to check whether specific SKUs, rather than whole categories, are driving returns.
+
+---
 
 **Further investigation:** 
 

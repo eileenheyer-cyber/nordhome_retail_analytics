@@ -250,8 +250,41 @@ Rules:
 - Use darker color for the highest value if using a gradient.
 - Avoid too many categories; prefer top 10 or top 15.
 - Add value labels at the end of bars.
+- If values sit close together (no clear rank story) or you're building
+  multi-panel comparisons across metrics with different scales, use the
+  spotlight pattern (#4) instead of a gradient.
 
-### 4. Line chart
+### 4. Spotlight bar chart — no axis, every bar labeled
+
+Use when every bar's exact value matters and the values are close together
+(e.g. category revenue within a ~10% band), so a numeric axis would just repeat
+what the labels already say. Also the default choice for side-by-side panels
+comparing two metrics with different units/scales (e.g. revenue vs. units sold)
+— each panel keeps its own bars-only look instead of forcing a shared axis.
+
+Rules:
+- **Bars: grey-first, one spotlight.** All bars `GREY` (`#B0B7C3`) except the
+  single bar the chart's point is about (usually the top-ranked one), which
+  gets `ACCENT`/`BLUE`. Do **not** use a light→dark gradient here — a gradient
+  implies a fixed rank order, which is misleading if the two panels don't agree
+  on rank (e.g. one category leads revenue, another leads units sold).
+- **Remove the axis entirely**: `ax.set_xticks([])` (or `set_yticks([])` for
+  vertical bars), no gridlines (`ax.xaxis.grid(False)` / `ax.yaxis.grid(False)`),
+  no spines. The direct labels are the only source of numbers.
+- **Label every bar**, positioned just past the bar end
+  (`bar_value * 1.02`), not only the top one.
+  - Top/spotlighted bar: `color=ACCENT`, `fontweight='bold'`.
+  - All other bars: `color=DARK_TEXT` (`#333333`), `fontweight='normal'`.
+- Add `ax.margins(x=0.15)` (or `y=` for vertical) so the longest label isn't
+  clipped at the figure edge now that there's no axis defining the boundary.
+- For multi-panel comparisons, reuse the same category order and the same
+  per-category color assignment across panels so a given category stays the
+  same color in every panel — the eye should not have to re-map colors per
+  panel.
+- Category tick labels: keep on the leftmost panel only; drop
+  (`set_yticklabels([])`) on subsequent panels to avoid repeating them.
+
+### 5. Line chart
 
 Use for time trends, such as monthly revenue or order volume.
 
