@@ -98,7 +98,26 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 ## 3. Products
 
-### Q1: Which individual products are the top 10 revenue contributors, and which categories do they come from?
+### Q1: Which product categories drive the most revenue and unit sales?
+
+**Insight:** Category rank shifts depending on whether you measure revenue or volume — average price per unit explains why.
+
+**Finding:** Gifts leads on both revenue (€5,509K) and units sold (115,815) — it's the strongest category outright. But below that, rank order flips between the two metrics: Beauty sells more units (99,153) than Lifestyle (95,875), yet Lifestyle generates more revenue (€5,294K vs €5,206K). Kitchen sits at the bottom on both metrics, despite having the highest revenue-per-unit of any category (~€58/unit vs ~€47–55 elsewhere).
+
+**Chart:** ![Revenue and units sold by category](figures/revenue_units_by_category.png)
+
+**Business interpretation:**
+- Gifts is the clear top performer — high volume and the highest revenue, meaning it converts sales into revenue efficiently rather than winning on volume alone.
+- Lifestyle vs. Beauty is a classic volume-vs-price trade-off: Beauty moves more units but at a lower average price point, while Lifestyle's roughly 5% higher price per item is enough to overtake Beauty on total revenue despite selling fewer units. This means Beauty's growth strategy should focus on volume/reach (it already has the traffic), while Lifestyle's edge is pricing power, not scale.
+- Kitchen is the concerning one. It has the highest price per unit across all categories, but the lowest unit volume and the lowest total revenue. High price alone isn't translating into revenue — this suggests Kitchen may be price-sensitive or under-marketed relative to its price point, since customers aren't buying it at the volume the other categories achieve.
+
+**Why this matters:** Revenue alone would rank these categories Gifts > Home > Lifestyle > Beauty > Kitchen. Units alone would rank them Gifts > Home > Beauty > Lifestyle > Kitchen. Only looking at revenue-per-unit reveals why the middle categories swap — it's not noise, it's a real price/volume trade-off worth acting on differently per category.
+
+**Recommended next step:** For Kitchen specifically, check whether its higher price point correlates with lower return rate or higher return rate (tie back to the return-rate chart) — if Kitchen's high per-unit price is also driving its highest-in-category return rate (0.98%, per the return-rate chart), that's a stronger signal the category is currently overpriced relative to what customers are willing to keep, not just what they're willing to buy.
+
+---
+
+### Q2: Which individual products are the top 10 revenue contributors, and which categories do they come from?
 
 **Insight:** Gifts products dominate the top 10 best-sellers by revenue — 5 of the top 10 products belong to the Gifts category, including the single highest earner (Gourmet Hamper XL, €179K). Beauty, Lifestyle, and Home each contribute only 1–2 products to the top 10, with none matching Gifts' concentration at the top of the ranking.
 
@@ -112,7 +131,7 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 ---
 
-### Q2: Which product categories have the highest return rate, and where is the financial (refund) impact concentrated?
+### Q3: Which product categories have the highest return rate, and where is the financial (refund) impact concentrated?
 
 **Insight:** Kitchen has the highest item return rate at 0.98%, and Gifts ties with Kitchen for the highest total refund value (~€131K each) — despite Gifts having the *lowest* return rate of all categories (0.77%). Return rate and refund value answer different business questions: Gifts is likely higher-priced and higher-volume, so even a below-average return rate still produces above-average refund euros.
 
@@ -126,17 +145,63 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 ---
 
-**Further investigation:** 
+### Q4: How does gross margin estimated from catalog list price compare to gross margin realized from actual sales, by product category?
+
+**Insight:** NordHome is selling at a loss across every product category. Realized gross margin — calculated on actual transaction prices net of returns — is negative in every category, ranging from -5% (Lifestyle, Kitchen) to -30% (Beauty). The company's published/catalog pricing implies a healthy ~55% margin, but that margin is never actually being realized at the point of sale.
+
+**Evidence:** Catalog margin sits around 55% uniformly across categories. Realized margin ranges from -5.05% (Lifestyle) and -5.60% (Kitchen) to -10.75% (Home), -24.23% (Gifts), and -30.38% (Beauty).
+
+**Chart:** ![Catalog vs realized gross margin by category](figures/catalog_vs_realized_margin_by_category.png)
+
+**Business interpretation:** The gap between catalog and realized margin points to systemic pricing erosion — the business is pricing products to earn 55% margin on paper, but discounting, promotions, or price overrides are pushing actual sale prices low enough that the company loses money on every unit sold, before even accounting for fixed costs. Beauty and Gifts are the most severely affected (-30% and -24%), suggesting these categories are either the most heavily discounted or the most exposed to promotional/marketing-driven price cuts. Kitchen and Lifestyle are comparatively less damaged but still unprofitable.
+
+**Why this matters:** This isn't a rounding issue — a business cannot sustain negative unit economics at scale. Left unaddressed, every additional order increases realized losses rather than profit, meaning growth in sales volume is actively accelerating losses rather than building revenue.
+
+**Recommended next steps (if this were real):**
+- Audit discounting practices by category, especially Beauty and Gifts, to identify whether promotions or price overrides are the driver.
+- Cross-reference with the marketing campaigns table — if the negative-margin categories overlap with the most heavily promoted campaigns, that's a strong signal campaigns are being funded by margin, not incremental profit.
+- Reassess whether `unit_cost` (cost of goods) is accurate — if COGS assumptions are stale or wrong, the "loss" could be overstated, but if confirmed accurate, pricing strategy needs immediate revision.
+- Treat this as a pricing governance issue: catalog price should not be allowed to diverge this far from realized price without an approval/reporting mechanism.
 
 ---
 
 ## 4. Payments
 
-- 
-- 
-- 
+### Q1: How much of payment value is cleanly collected, and how concentrated is revenue across payment methods?
 
-**Further investigation:** 
+**Insight:** Payment collection is fragmented across methods, and nearly 1 in 5 euros of payment value isn't cleanly collected.
+
+**Evidence:** Only 70.7% of total payment value lands as "Paid." The remainder is split across Pending (10.1%), Refunded (9.6%), Failed (4.8%), and Partially Refunded (4.7%) — nearly 30% of payment value sits outside a clean, completed transaction. On the method side, no single payment method dominates: Credit Card leads but only at 23.3%, with Debit Card, PayPal, and Bank Transfer essentially tied around 17–18%, and Klarna/BNPL (11.9%) and Apple Pay (11.6%) together accounting for close to a quarter of paid revenue.
+
+**Chart:** ![Payment status and method share](figures/payment_status_and_method_share.png)
+
+**Business interpretation:**
+- Failed payments (4.8%) are the most actionable line item — this is revenue lost purely to payment friction (declined cards, timeouts, technical failures), not customer intent to not buy. It's the most direct, quantifiable case for investing in payment retry logic or failure-recovery flows.
+- Pending (10.1%) is a cash-flow visibility risk, not necessarily a loss — but at this size, it's material enough that finance shouldn't treat gross order value as equivalent to collected cash when forecasting.
+- Refunded + Partially Refunded (~14.3% combined) lines up with the return-rate and margin findings already surfaced above (Kitchen's high return rate, negative realized margin) — this is a third independent signal pointing at the same underlying issue: a meaningful share of revenue doesn't stick.
+- The flat payment-method distribution means no method can be deprioritized. Consolidating around "the top payment method" would put roughly three-quarters of paid revenue at risk, since the top four methods are all within a similar range. This also limits negotiating leverage with any single processor, since none of them is indispensable to volume in isolation — but none is safely droppable either.
+
+**Why this matters:** Three separate metrics (returns, margin, payments) are independently converging on the same story — a non-trivial share of revenue that looks "sold" doesn't convert into money the business actually keeps. That consistency across independently-sourced fact tables (`fact_returns`, `fact_order_items`, `fact_payments`) is itself a useful validation signal, not just a business finding — it suggests this isn't noise in one table, but a real pattern reflected across the data model.
+
+**Recommended next step:** Quantify the overlap — are Failed and Pending payments concentrated in specific categories or payment methods (e.g., is Klarna/BNPL disproportionately represented in Failed or Pending)? If so, that narrows the fix to a specific checkout flow rather than a general payments problem.
+
+---
+
+### Q2: Which payment methods carry disproportionate unpaid value risk, relative to their transaction volume?
+
+**Insight:** Unpaid payment risk is proportional to volume — no payment method is disproportionately risky.
+
+**Evidence:** Comparing each payment method's share of unpaid/pending value against its share of total transaction volume, the deviation stays within ±2.4 percentage points across all six methods. Apple Pay (+2.4%) and Klarna/BNPL (+2.3%) are marginally over-indexed; PayPal (-3.1%) is the most under-indexed (i.e., resolves proportionally better than its volume share would predict). Credit Card, Debit Card, and Bank Transfer sit within ±1.1 points of perfectly proportional.
+
+**Chart:** ![Unpaid risk vs. transaction volume by payment method](figures/unpaid_risk_vs_volume_by_method.png)
+
+**Business interpretation:** This is a null result on the original hypothesis, and that's a meaningful finding in itself. If payment method choice were driving collection risk, at least one method would show a clear, large deviation from its volume share. None do. This rules out "payment method" as a driver of unpaid/pending value and redirects the investigation toward other explanatory factors — order value, product category, customer segment, or time-to-payment are more likely candidates than checkout method.
+
+**Notable but secondary detail:** Klarna/BNPL being slightly over-indexed (+2.3%) is directionally consistent with it being a deferred-payment method by design (payment isn't immediate, so it structurally has more time to land in Pending/Failed states). However, the magnitude is too small relative to the ±3-point band across all methods to support a standalone "BNPL is riskier" conclusion — it's noise-level, not signal-level.
+
+**Why this matters:** Three prior findings (return rate/refund value by category, realized margin, payment status breakdown) all pointed to real, category- or product-level patterns. This analysis shows that not every dimension produces a meaningful pattern — payment method genuinely doesn't. Reporting this negative result alongside the positive ones demonstrates the analysis is following the evidence rather than searching for a story, and it correctly narrows where further investigation should focus.
+
+**Recommended next step:** Re-run the same proportional-deviation logic segmented by order value tier or product category instead of payment method — if unpaid risk concentrates by category (e.g., higher in Kitchen, consistent with its already-elevated return rate) or by order size, that's a stronger and more actionable lead than payment method was.
 
 ---
 

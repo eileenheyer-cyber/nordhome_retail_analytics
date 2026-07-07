@@ -6,6 +6,7 @@ import matplotlib.ticker as mticker
 # ── Color tokens ──────────────────────────────────────────────────────────────
 ACCENT     = "steelblue" # highlight — key finding / top-ranked bar
 ORANGE     = "#F2632D"   # project standard highlight orange (CLAUDE.md chart style guide)
+NEGATIVE   = "#C0392B"   # loss/warning — use only when every highlighted value is genuinely bad, not as a ranking color
 GREY_LABEL = "#aaaaaa"   # overline subject line
 GREY_TEXT  = "#888888"   # headline non-highlighted words
 BLUES      = plt.cm.Blues  # ranking-bar gradient (light→dark, bottom→top)

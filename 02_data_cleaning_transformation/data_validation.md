@@ -567,6 +567,8 @@ The affected product IDs were already missing from the original product master d
 Therefore, these records are treated as missing product master data / invalid product references.  
 They are kept and flagged, but not corrected manually.
 
+Confirmed at the mart layer: all 452 `ghost_product_flag` rows in `mart.fact_order_items` resolve to `product_key = -1` (category = "Unknown"), totaling €166,115.62 in `line_total` — this revenue cannot be attributed to any category and must stay excluded from category-level breakdowns.
+
 ---
 
 ### 3. Orders Without Matching Customer

@@ -123,6 +123,20 @@ Order item level is the correct level for product sales analysis, category analy
 
 ---
 
+## Price Fields: list_price, unit_price, line_total
+
+* `list_price` — lives in `dim_product`. It's the product's *catalog* price — the "official" advertised price for that item, one value per product, independent of any actual sale.
+* `unit_price` — lives in `fact_order_items`. It's the *actual transaction price* — what the customer was charged per unit on that specific order line. This is the real, realized price, which can differ from the catalog price due to discounts, promotions, dynamic pricing, price changes over time, etc.
+* `line_total` — also in `fact_order_items`, it's `unit_price × quantity` for that line (roughly — modulo any line-level discount logic).
+
+Important note:
+
+`list_price` and `unit_price` were checked and found to be statistically independent in this dataset (see the VAT/`list_price` check further below). Differences between them cannot be explained by VAT, discount, or a consistent markup.
+
+Use `unit_price` and `line_total` for all realized revenue, profit, and margin calculations. Only use `list_price` for catalog-price or "would-have-been" comparisons, and label any such chart or metric explicitly as list-price-based, not realized revenue.
+
+---
+
 ## Return
 
 A return represents a product that was returned by a customer.
@@ -154,23 +168,22 @@ Return data should be validated before it is used in net revenue, return rate, o
 | Invalid quantity or price | Records with invalid quantity or invalid price should be excluded from revenue and margin KPIs |
 | Unknown customer/product/store keys | Unknown records are kept for traceability but may be excluded from detailed dimensional analysis |
 
-Important VAT note:
+**Important VAT note:**
 
-If `unit_price` and `line_total` already exclude VAT, they can be used directly for revenue calculation.
+VAT assumption: unit_price and line_total are treated as VAT-exclusive. Revenue, profit, and margin calculations are based on these fields directly
 
-If source prices include VAT, VAT must be removed before calculating revenue:
+Important `list_price` note (added 2026-07-06):
 
-```text
-net_price_excluding_vat = gross_price_including_vat / (1 + vat_rate)
-```
+`list_price` (product dimension, `dim_product`) and `unit_price` (actual transaction price, `fact_order_items`) were checked for a consistent VAT-sized gap, to determine whether `list_price` is VAT-inclusive or VAT-exclusive relative to `unit_price`.
 
-For this project, the default assumption is:
+Result: `list_price` and `unit_price` show effectively zero correlation across 74,783 matched order lines (r ≈ -0.001), even after restricting to near-zero-discount lines. Differences between the two ranged up to +3,000%, far beyond anything a VAT rate could explain.
 
-```text
-unit_price and line_total are treated as values excluding VAT.
-```
+Conclusion: `list_price` and `unit_price` are statistically independent fields in this dataset, not derived from each other. This means:
 
-This keeps revenue, profit, and margin calculations separate from tax reporting.
+* `list_price`'s VAT treatment cannot be determined by comparison to `unit_price` — there is no economic relationship to check it against.
+* Any margin calculation using `list_price - unit_cost` (a "catalog margin") is not the same thing as margin realized on actual sales, since actual sales use `unit_price`/`line_total`, not `list_price`. Charts using `list_price`-based margin should be labelled as a catalog/list-price estimate, not realized transaction margin.
+
+Next step: this discrepancy should be flagged to the team/stakeholder(s) responsible for the pricing/catalog data pipeline, since a product-level list price with no relationship to what customers are actually charged is unexpected for a real catalog system and should be confirmed as intentional (e.g. synthetic data generation) rather than a broken price feed.
 
 ---
 
@@ -314,6 +327,31 @@ Product cost:           €45
 Gross profit:           €55
 Gross margin:           55%
 ```
+
+---
+
+## Net Margin
+
+*Added: 2026-07-06*
+
+| Field          | Definition                                               |
+| -------------- | -------------------------------------------------------- |
+| Business term  | Net Margin                                               |
+| Meaning        | Share of net revenue left after **all** business costs, not only product cost |
+| Formula        | `(cash_based_net_revenue - total_business_costs) / cash_based_net_revenue` |
+| Status         | **Not calculable in this project**                        |
+| Used for       | Would be used for true bottom-line profitability, if available |
+
+This dataset only contains product cost (`unit_cost`). There is no data for operating expenses, marketing spend, shipping/fulfilment cost, platform fees, salaries, or overhead.
+
+Because of this, Net Margin cannot be distinguished from Gross Margin here — there is no second cost source to deduct. Reporting a "Net Margin" number in this project would either:
+
+* silently duplicate Gross Margin, or
+* require inventing an expense figure that is not supported by the data.
+
+Both are misleading, so Net Margin is documented as not calculable rather than approximated.
+
+Do not add a Net Margin chart, KPI, or dashboard tile until a real expense data source is added to the model.
 
 ---
 
@@ -681,3 +719,5 @@ Dashboard users should be aware that:
 | 2026-06-23 | Updated Gross Revenue and Net Revenue definitions; added Method A vs Method B decision record — Method B, cash-based using `refund_amount` from `fact_returns`, adopted as project standard for net revenue reporting |
 | 2026-06-24 | Added VAT and cost assumptions; renamed revenue KPIs for clearer business meaning; added Gross Profit, Gross Margin, Gross AOV, Net AOV, Gross Units Sold, Net Units Sold, Historical CLV, and Potential Revenue at Risk definitions |
 | 2026-07-03 | Added Predicted Customer Lifetime Value definition (heuristic: AOV x Frequency x Lifespan) as the forward-looking counterpart to Historical CLV; noted censoring limitation on lifespan; linked to `customer_ltv_prediction.ipynb` |
+| 2026-07-06 | Added Net Margin definition; documented as not calculable in this project since only product cost (`unit_cost`) exists and no operating expense, marketing, shipping, or overhead data is available |
+| 2026-07-06 | Checked `list_price` vs `unit_price` for a VAT-sized gap to resolve VAT treatment; found near-zero correlation (r ≈ -0.001) instead — documented that the two fields are statistically independent, so list_price-based margin is a catalog estimate, not realized transaction margin |
