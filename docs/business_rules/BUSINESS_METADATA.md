@@ -586,6 +586,23 @@ This metric should not be interpreted as confirmed revenue loss. It is a priorit
 
 ---
 
+## Unpaid Payment Risk Gap (by Payment Method)
+
+*Added: 2026-07-08*
+
+| Field         | Definition                                                          |
+| ------------- | -------------------------------------------------------------------- |
+| Business term | Unpaid Payment Risk Gap                                              |
+| Meaning       | Does a payment method carry more unpaid/at-risk value than its share of total payment value would predict? |
+| Formula       | `unpaid_risk_share_pct - payment_amount_share_pct` (both €-based shares) |
+| Used for      | Testing whether unpaid/pending value concentrates in specific payment methods |
+
+Important note: both shares must be €-based (`SUM(payment_amount)`), not transaction counts — mixing a €-share against a count-share can fake a "disproportionate" result from average transaction size alone, not real risk.
+
+**Finding to date:** gap stays within -0.16 to +0.29 points across all methods — no method is disproportionately risky. See [insights.md](../../04_EDA/insights.md), Payments Q2.
+
+---
+
 ## 7. Business Rules
 
 | Rule                                                         | Explanation                                                  |
@@ -721,3 +738,4 @@ Dashboard users should be aware that:
 | 2026-07-03 | Added Predicted Customer Lifetime Value definition (heuristic: AOV x Frequency x Lifespan) as the forward-looking counterpart to Historical CLV; noted censoring limitation on lifespan; linked to `customer_ltv_prediction.ipynb` |
 | 2026-07-06 | Added Net Margin definition; documented as not calculable in this project since only product cost (`unit_cost`) exists and no operating expense, marketing, shipping, or overhead data is available |
 | 2026-07-06 | Checked `list_price` vs `unit_price` for a VAT-sized gap to resolve VAT treatment; found near-zero correlation (r ≈ -0.001) instead — documented that the two fields are statistically independent, so list_price-based margin is a catalog estimate, not realized transaction margin |
+| 2026-07-08 | Added Unpaid Payment Risk Gap definition; must compare €-based shares on both sides, not count vs €, to avoid a units-mismatch false positive |

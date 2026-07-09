@@ -187,17 +187,15 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 ---
 
-### Q2: Which payment methods carry disproportionate unpaid value risk, relative to their transaction volume?
+### Q2: Which payment methods carry disproportionate unpaid value risk, relative to how much payment value they process?
 
-**Insight:** Unpaid payment risk is proportional to volume — no payment method is disproportionately risky.
+**Insight:** Unpaid payment risk is proportional to payment value processed — no payment method is disproportionately risky.
 
-**Evidence:** Comparing each payment method's share of unpaid/pending value against its share of total transaction volume, the deviation stays within ±2.4 percentage points across all six methods. Apple Pay (+2.4%) and Klarna/BNPL (+2.3%) are marginally over-indexed; PayPal (-3.1%) is the most under-indexed (i.e., resolves proportionally better than its volume share would predict). Credit Card, Debit Card, and Bank Transfer sit within ±1.1 points of perfectly proportional.
+**Evidence:** Comparing each payment method's share of unpaid/pending value against its share of total payment value (both measured in €), the gap stays within **-0.16 to +0.29 percentage points** across all six methods: Klarna/BNPL -0.16, PayPal -0.08, Apple Pay -0.07, Debit Card -0.03, Bank Transfer +0.04, Credit Card +0.29.
 
-**Chart:** ![Unpaid risk vs. transaction volume by payment method](figures/unpaid_risk_vs_volume_by_method.png)
+**Chart:** ![Unpaid risk vs. payment value share by method](figures/unpaid_risk_vs_volume_by_method.png)
 
-**Business interpretation:** This is a null result on the original hypothesis, and that's a meaningful finding in itself. If payment method choice were driving collection risk, at least one method would show a clear, large deviation from its volume share. None do. This rules out "payment method" as a driver of unpaid/pending value and redirects the investigation toward other explanatory factors — order value, product category, customer segment, or time-to-payment are more likely candidates than checkout method.
-
-**Notable but secondary detail:** Klarna/BNPL being slightly over-indexed (+2.3%) is directionally consistent with it being a deferred-payment method by design (payment isn't immediate, so it structurally has more time to land in Pending/Failed states). However, the magnitude is too small relative to the ±3-point band across all methods to support a standalone "BNPL is riskier" conclusion — it's noise-level, not signal-level.
+**Business interpretation:** This is a null result on the original hypothesis, and that's a meaningful finding in itself. If payment method choice were driving collection risk, at least one method would show a clear, large deviation from its payment-value share. None do — the largest gap (Credit Card, +0.29pp) is close to negligible. This rules out "payment method" as a driver of unpaid/pending value and redirects the investigation toward other explanatory factors — order value, product category, customer segment, or time-to-payment are more likely candidates than checkout method.
 
 **Why this matters:** Three prior findings (return rate/refund value by category, realized margin, payment status breakdown) all pointed to real, category- or product-level patterns. This analysis shows that not every dimension produces a meaningful pattern — payment method genuinely doesn't. Reporting this negative result alongside the positive ones demonstrates the analysis is following the evidence rather than searching for a story, and it correctly narrows where further investigation should focus.
 

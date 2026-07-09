@@ -263,6 +263,10 @@ comparing two metrics with different units/scales (e.g. revenue vs. units sold)
 — each panel keeps its own bars-only look instead of forcing a shared axis.
 
 Rules:
+- **Never rely on matplotlib's default bar thickness.** Always pass an explicit
+  `height=` (horizontal `barh`) or `width=` (vertical `bar`) — default is `0.8`,
+  which reads as bulky next to direct end-labels. Use `0.5` as the default for
+  ranked/spotlight horizontal bars unless the user asks for something else.
 - **Bars: grey-first, one spotlight.** All bars `GREY` (`#B0B7C3`) except the
   single bar the chart's point is about (usually the top-ranked one), which
   gets `ACCENT`/`BLUE`. Do **not** use a light→dark gradient here — a gradient
