@@ -22,8 +22,8 @@ _LABEL_SIZE = 9    # overline subject (add_chart_title, legacy — new charts us
 _TEXT_SIZE  = 16   # headline grey context words
 _KEY_SIZE   = 18   # headline orange key phrase (≤3 words)
 
-TITLE_SIZE    = 24   # main chart title (add_title_subtitle)
-SUBTITLE_SIZE = 18   # supporting subtitle line (add_title_subtitle)
+TITLE_SIZE    = 22   # main chart title (add_title_subtitle)
+SUBTITLE_SIZE = 16   # supporting subtitle line (add_title_subtitle)
 TITLE_COLOR    = "#333333"
 SUBTITLE_COLOR = "#5A5A5A"
 

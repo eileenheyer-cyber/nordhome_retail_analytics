@@ -205,11 +205,21 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 ## 5. Returns
 
-- 
-- 
-- 
+### Q1: How have item and revenue return rates trended year over year, and how does H1 2024 compare to previous years?
 
-**Further investigation:** 
+**Insight:** Both return rates remained relatively stable from 2021 to 2023, then increased clearly in H1 2024.
+
+**Evidence:** Item return rate rose from 8.64% (2023) to 9.74% (H1 2024), +1.10 pp. Revenue return rate rose from 3.65% to 4.02%, +0.37 pp. The item return rate is consistently much higher than the revenue return rate, suggesting returned items are more concentrated in lower-value products rather than the highest-revenue items.
+
+**Chart:** ![Item vs revenue return rate trend](figures/return_rate_trend_item_vs_revenue.png)
+
+**Business interpretation:** Returns became more frequent in 2024, but the revenue impact increased more moderately than the item volume impact. The jump in H1 2024 is a potential warning signal — it may indicate changes in customer expectations, product quality, delivery experience, or product information accuracy. The chart alone does not explain the cause.
+
+Benchmarked externally, NordHome's H1 2024 item return rate (9.74%) sits slightly below the reported German online purchase return rate (~11%), and the revenue return rate (4.02%) sits below the European e-commerce returned-revenue benchmark (~7%). So the absolute level is not unusual — the concern is the *direction* of change after three stable years. Because NordHome is a mixed retail dataset rather than fashion-heavy, these external benchmarks are only rough reference points, not a like-for-like comparison.
+
+**Limitation:** 2024 only includes January–June, so the increase should be interpreted carefully. A full-year comparison or an H1-to-H1 comparison is needed before concluding that 2024 is structurally worse than previous years. External benchmarks also come from different markets/business mixes and are only directionally useful.
+
+**Further investigation:** Investigate which return reasons, product categories, channels, or customer segments contributed most to the 2024 increase. Compare return rates separately by category (Home, Kitchen, Beauty, Gifts, Lifestyle) to benchmark more accurately against a mixed-retail baseline.
 
 ---
 
