@@ -149,8 +149,6 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 **Insight:** NordHome is selling at a loss across every product category. Realized gross margin — calculated on actual transaction prices net of returns — is negative in every category, ranging from -5% (Lifestyle, Kitchen) to -30% (Beauty). The company's published/catalog pricing implies a healthy ~55% margin, but that margin is never actually being realized at the point of sale.
 
-**Evidence:** Catalog margin sits around 55% uniformly across categories. Realized margin ranges from -5.05% (Lifestyle) and -5.60% (Kitchen) to -10.75% (Home), -24.23% (Gifts), and -30.38% (Beauty).
-
 **Chart:** ![Catalog vs realized gross margin by category](figures/catalog_vs_realized_margin_by_category.png)
 
 **Business interpretation:** The gap between catalog and realized margin points to systemic pricing erosion — the business is pricing products to earn 55% margin on paper, but discounting, promotions, or price overrides are pushing actual sale prices low enough that the company loses money on every unit sold, before even accounting for fixed costs. Beauty and Gifts are the most severely affected (-30% and -24%), suggesting these categories are either the most heavily discounted or the most exposed to promotional/marketing-driven price cuts. Kitchen and Lifestyle are comparatively less damaged but still unprofitable.
@@ -191,8 +189,6 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 **Insight:** Unpaid payment risk is proportional to payment value processed — no payment method is disproportionately risky.
 
-**Evidence:** Comparing each payment method's share of unpaid/pending value against its share of total payment value (both measured in €), the gap stays within **-0.16 to +0.29 percentage points** across all six methods: Klarna/BNPL -0.16, PayPal -0.08, Apple Pay -0.07, Debit Card -0.03, Bank Transfer +0.04, Credit Card +0.29.
-
 **Chart:** ![Unpaid risk vs. payment value share by method](figures/unpaid_risk_vs_volume_by_method.png)
 
 **Business interpretation:** This is a null result on the original hypothesis, and that's a meaningful finding in itself. If payment method choice were driving collection risk, at least one method would show a clear, large deviation from its payment-value share. None do — the largest gap (Credit Card, +0.29pp) is close to negligible. This rules out "payment method" as a driver of unpaid/pending value and redirects the investigation toward other explanatory factors — order value, product category, customer segment, or time-to-payment are more likely candidates than checkout method.
@@ -209,8 +205,6 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 **Insight:** Both return rates remained relatively stable from 2021 to 2023, then increased clearly in H1 2024.
 
-**Evidence:** Item return rate rose from 8.64% (2023) to 9.74% (H1 2024), +1.10 pp. Revenue return rate rose from 3.65% to 4.02%, +0.37 pp. The item return rate is consistently much higher than the revenue return rate, suggesting returned items are more concentrated in lower-value products rather than the highest-revenue items.
-
 **Chart:** ![Item vs revenue return rate trend](figures/return_rate_trend_item_vs_revenue.png)
 
 **Business interpretation:** Returns became more frequent in 2024, but the revenue impact increased more moderately than the item volume impact. The jump in H1 2024 is a potential warning signal — it may indicate changes in customer expectations, product quality, delivery experience, or product information accuracy. The chart alone does not explain the cause.
@@ -220,6 +214,20 @@ Benchmarked externally, NordHome's H1 2024 item return rate (9.74%) sits slightl
 **Limitation:** 2024 only includes January–June, so the increase should be interpreted carefully. A full-year comparison or an H1-to-H1 comparison is needed before concluding that 2024 is structurally worse than previous years. External benchmarks also come from different markets/business mixes and are only directionally useful.
 
 **Further investigation:** Investigate which return reasons, product categories, channels, or customer segments contributed most to the 2024 increase. Compare return rates separately by category (Home, Kitchen, Beauty, Gifts, Lifestyle) to benchmark more accurately against a mixed-retail baseline.
+
+---
+
+### Q2: Which sales channel and which country have the highest order-level return rate, and how large are the differences?
+
+**Insight:** Marketplace shows the highest return rate, but differences across channels are small.
+
+**Chart:** ![Order return rate by sales channel and country](figures/order_return_rate_channel_country.png)
+
+**Business interpretation:** No channel or country stands out as a clear return-risk driver — order-level return rate looks structurally consistent regardless of how or where the order was placed. This points away from channel/country as the lever for reducing returns; the driver is more likely elsewhere (product category, price point, or return reason), consistent with Kitchen already carrying the highest item return rate.
+
+**Limitation:** Because this dataset is generated, the tight, even spread across both dimensions may reflect the data generation process rather than a genuine absence of channel/country effects.
+
+**Further investigation:** Check whether return *reason* (not just return rate) varies by channel or country — a flat rate could still hide different underlying causes.
 
 ---
 
