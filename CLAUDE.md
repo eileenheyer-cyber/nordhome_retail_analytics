@@ -467,20 +467,17 @@ Do not make charts look decorative at the expense of readability.
 When writing insights, use this structure:
 
 ```markdown
-### Insight
-State the finding clearly.
+### Key finding
+State the finding clearly, including the key number or comparison.
 
-### Evidence
-Mention the key number or comparison.
+### Business interpretation
+Explain what it may mean from a business perspective — why this could matter.
 
-### Interpretation
-Explain what it may mean from a business perspective.
+### Further investigation
+Suggest a reasonable follow-up analysis — what should be analysed next.
 
 ### Limitation
-Mention what cannot be concluded yet.
-
-### Next step
-Suggest a reasonable follow-up analysis.
+Explain what prevents a stronger conclusion.
 ```
 
 Be careful with generated data.

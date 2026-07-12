@@ -8,9 +8,15 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 ### Q1: How has gross revenue trended month by month over time, and what is total revenue across the full period?
 
-**Insight:** Gross and net revenue move closely together month over month. Over the full period (Jan 2021 – Jun 2024), total gross revenue is €24.83M and financial net revenue is €24.24M. The average refund deduction rate is 2.4%, meaning actual cash refunds are small relative to gross revenue. No major structural breaks or prolonged declines are visible in the monthly trend.
+**Insight:** Gross and net revenue move closely together month over month, with an average refund deduction rate of only 2.4% — refunds consistently reduce revenue, but the gap is small relative to overall monthly fluctuations. Over the full period (Jan 2021 – Jun 2024), total gross revenue is €24.83M and financial net revenue is €24.24M. Net revenue reached its lowest point in February 2024, before recovering to approximately €0.66M in June 2024. No major structural breaks or prolonged declines are visible in the monthly trend.
 
 **Chart:** ![Monthly gross and net revenue line chart](figures/monthly.png)
+
+**Business interpretation:** Refunds do not appear to be the main driver of month-to-month revenue volatility — the larger swings are more likely driven by sales volume, seasonality, promotions, or shifts in product and channel performance.
+
+**Limitation:** The 2024 data only covers January through June, so it should not yet be compared directly with complete prior years.
+
+**Further investigation:** Break down the strongest peaks and declines by product category, market, channel, and order volume, and check whether the 2.4% deduction rate stays stable across these segments.
 
 ---
 
@@ -20,23 +26,41 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Chart:** ![Revenue by country and sales channel](figures/country.png)
 
+**Business interpretation:** This even distribution limits NordHome's revenue concentration risk — the business isn't heavily dependent on one country or one sales channel, which provides resilience if performance weakens in a particular market or channel. However, equal revenue contribution does not mean equal business value: channels and markets may still differ in margin, customer acquisition cost, return rate, and growth potential.
+
+**Limitation:** Because this dataset is generated, the unusually even distribution across countries and channels may partly reflect the data generation process rather than realistic customer demand.
+
+**Further investigation:** Compare markets and channels on revenue growth, profit margin, average order value, return/cancellation rates, and customer acquisition/retention — not just current revenue share.
+
 ---
 
 ### Q3: How much do returns, refunds, and cancellations reduce gross revenue — and how does net revenue trend year over year?
 
-**Insight:** Order status impact is stable at around 16–17% of potential order value each year. Cancelled orders account for roughly €0.5–0.6M per year; returned and refunded order value adds another €0.7–0.8M. However, actual cash refunds (from `fact_returns.refund_amount`) total only €0.59M across the full period — a 2.4% deduction rate. The large gap between full order value of Returned/Refunded orders and actual refund amounts confirms that most returns result in only partial refunds.
+**Insight:** Order status impact is stable at around 16–17% of potential order value each year, rising gradually from 16.3% in 2021 to 17.1% in 2024 YTD. For the three complete years, the affected value held steady: approximately €1.23M in 2021, €1.30M in 2022, and €1.26M in 2023. Cancelled orders account for roughly €0.5–0.6M per year; returned and refunded order value adds another €0.7–0.8M — and cancellations are the largest individual component in every year. However, actual cash refunds (from `fact_returns.refund_amount`) total only €0.59M across the full period — a 2.4% deduction rate. The large gap between full order value of Returned/Refunded orders and actual refund amounts confirms that most returns result in only partial refunds.
 
 **Chart:** ![Order status impact stacked bar chart](figures/status_impact.png)
+
+**Business interpretation:** Although the year-over-year increase is small, the affected share is moving in the wrong direction. A consistently affected rate of around 17% points to a real operational opportunity — reducing cancellations, returns, or refunds would directly increase the share of potential order value NordHome retains. Remaining order value peaked in 2022 at approximately €6.5M before declining to around €6.2M in 2023.
+
+**Limitation:** This chart shows operational order-status impact, not actual financial loss or cash refunds — those are covered separately by the 2.4% deduction rate above. 2024 figures are year-to-date and should not be compared directly with full-year absolute values from prior years. The underlying calculation should also confirm that cancelled, returned, and refunded values are mutually exclusive to avoid double counting.
+
+**Further investigation:** Identify which products and categories generate the most cancellations, whether certain channels or markets have higher status-impact rates, the most common return reasons, whether cancellations occur before or after fulfilment begins, and whether specific customer groups repeatedly cancel or return orders.
 
 ---
 
 ### Q4: Does NordHome have a quarterly seasonal pattern — does revenue peak at a particular time of year?
 
-**Insight:** No stable seasonal peak exists across complete years. Q3 was the strongest quarter in 2021 and 2023, while Q2 led in 2022. The highest single quarter across the dataset is 2022 Q2 at €1.72M. 2024 is excluded from seasonal comparison as it only covers Q1–Q2. Year-to-year variation is more prominent than any consistent quarterly pattern.
+**Insight:** No stable seasonal peak exists across complete years — the strongest quarter differs by year: 2021 and 2023 both peaked in Q3, while 2022 peaked in Q2. 2022 was the strongest year overall, driven by a sharp rise from approximately €1.47M in Q1 to €1.72M in Q2 — the highest single quarter across the dataset — and revenue held up through Q4 (~€1.68M). In 2023, revenue increased gradually from Q1 to Q3 before declining in Q4, contributing to its lower annual result compared with 2022. 2024 is excluded from seasonal comparison as it only covers Q1–Q2.
 
 **Chart:** ![Quarterly net revenue by year](figures/quarterly.png)
 
-**Further investigation:** 
+**Business interpretation:** 2022's strong year appears driven particularly by Q2 and Q4 rather than consistently higher performance across every quarter. Combined with the fact that the strongest quarter shifts from year to year (Q3 → Q2 → Q3), there isn't yet enough evidence to conclude NordHome has a stable seasonal peak — year-to-year variation is more prominent than any consistent quarterly pattern. The differences may instead relate to campaigns, product performance, sales channels, markets, or shifts in order volume rather than genuine seasonality.
+
+**Limitation:** Only three complete years are included, and 2024 is excluded from the comparison since it only covers Q1–Q2. This gives an initial view of quarterly behaviour, but more years would be needed to confirm genuine seasonality.
+
+**Further investigation:** Investigate what specifically drove 2022 Q2's exceptional result — order volume and average order value, high-performing products or categories, campaign and channel performance, country-level revenue, and cancellation/return/refund rates for that quarter.
+
+**Section summary:** NordHome's revenue base is diversified across countries and channels, and leakage from actual cash refunds is small (2.4%). The bigger opportunity sits on the order-status side: 16–17% of potential order value is lost to cancellations, returns, and refunds every year, driven mainly by cancellations, and the rate is trending slightly upward rather than improving. No stable seasonal pattern exists yet — 2022 stands out as the strongest year, but that looks driven by specific strong quarters (Q2, Q4) rather than a repeatable seasonal effect.
 
 ---
 
@@ -44,55 +68,86 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 ### Q1: How are NordHome's customers distributed across markets and countries?
 
-**Insight:** NordHome's customer base is almost uniformly spread across all 10 countries, with each accounting for roughly 9–10% of customers (Norway leads at 10.4%, Austria sits lowest at 9.4% — a spread of under 1 percentage point). At the market level, Nordics (30.3%) and DACH (29.9%) together hold just under 60% of the customer base, with Benelux (19.9%) and Other — France and Poland — (20.0%) splitting the remaining 40% evenly. No single market or country dominates.
+**Key finding:** NordHome's customer base is almost uniformly spread across all 10 countries, with each accounting for roughly 9–10% of customers (Norway leads at 10.4%, Austria sits lowest at 9.4% — a spread of under 1 percentage point). At the market level, Nordics (30.3%) and DACH (29.9%) together hold just under 60% of the customer base, with Benelux (19.9%) and Other — France and Poland — (20.0%) splitting the remaining 40% evenly. No single market or country dominates.
 
 **Chart:** ![Customer distribution by market and country](figures/customer_country.png)
+
+**Business interpretation:** With no country or market concentrated enough to call a stronghold, geographic expansion or retention efforts can't be prioritized by customer count alone — any market-level strategy would need to be justified by revenue, margin, or growth potential instead, not customer share.
+
+**Further investigation:** Check whether this even customer distribution also holds for revenue, order frequency, and average order value per country — equal customer counts don't guarantee equal spending behavior.
+
+**Limitation:** Because this dataset is generated, the near-uniform 9–10% spread across all 10 countries is unusually even for a real customer base and may reflect the data generation process rather than genuine market demand.
 
 ---
 
 ### Q2: How are NordHome's customers distributed across age groups?
 
-**Insight:** The age mix is remarkably balanced across adults under 70, with each group accounting for 17–20% of known customers (18–29 leads at 19.7%, 40–49 sits lowest at 17.3%). The only clear drop-off is the 70+ group at 9.0% — roughly half the share of any other cohort. Under-18 and unknown age groups are excluded. NordHome's customer base has no dominant age segment among working-age adults.
+**Key finding:** The age mix is remarkably balanced across adults under 70, with each group accounting for 17–20% of known customers (18–29 leads at 19.7%, 40–49 sits lowest at 17.3%). The only clear drop-off is the 70+ group at 9.0% — roughly half the share of any other cohort. Under-18 and unknown age groups are excluded. NordHome's customer base has no dominant age segment among working-age adults.
 
 **Chart:** ![Customer distribution by age group](figures/customer_age.png)
 
-**Further investigation:** Combining demographic and geographic dimensions with purchasing behavior to identify more meaningful customer segments. Purchasing behavior can include order frequency, average order value, total revenue contribution, product category preference, basket size, discount usage, return behavior, and loyalty membership.
+**Business interpretation:** With no dominant working-age segment, broad age-based marketing won't isolate a meaningfully larger "core" audience — behavioral segments (order frequency, category preference, loyalty status) are more likely to reveal real differences than age group alone. The 70+ drop-off is the one pattern worth taking at face value, since lower e-commerce adoption among older shoppers is a plausible, common retail pattern rather than a suspiciously even split.
+
+**Further investigation:** Combine demographic and geographic dimensions with purchasing behavior — order frequency, average order value, total revenue contribution, product category preference, basket size, discount usage, return behavior, and loyalty membership — to identify more meaningful customer segments.
+
+**Limitation:** Because this dataset is generated, the tightly even 17–20% split across age bands under 70 may partly reflect the data generation process rather than a real demographic pattern.
 
 ---
 
-### Q3: Do loyalty programme members place more orders and spend more per order than non-members?
+### Q3: Which age group has the highest average revenue per customer?
 
-**Insight:** The loyalty group does not show a clear advantage in total revenue, average order value, or median order value. Loyalty members and non-members generate nearly identical revenue (€13.03M vs €13.18M) and average order value (€1,141 vs €1,137). This suggests that loyalty membership does not meaningfully change order-level spending — loyalty members do not appear to place larger baskets than non-members. The fact that average order value is considerably higher than median order value in both groups also points to a right-skewed distribution: most orders cluster near the median, while a small number of high-value orders pull the average upward.
-
-**Business implication:** Loyalty membership may not be effective at increasing basket size. However, this does not mean the loyalty programme has no value. Its impact may appear in other customer behaviours, such as repeat purchase frequency, retention, churn reduction, or customer lifetime value.
-
-**Recommended next step**
-
-Further analysis should investigate whether loyalty members purchase more frequently, stay active longer, or have higher customer lifetime value compared with non-members.
-
----
-
-### Q4: What share of customers bought more than once, and how much more do repeat buyers spend on average compared to one-time buyers?
-
-**Insight:** Repeat buyers dominate the customer base — 6,789 customers (85.2%) placed more than one order, versus 1,181 one-time buyers (14.8%). Repeat buyers also generate far more value per customer: €3,117 on average across 3.62 orders, compared to €901 for one-time buyers — a 3.5× difference. Most of NordHome's revenue is driven by customers who return, not by single-purchase acquisition.
-
-**Chart:** ![Repeat vs one-time buyer comparison](figures/buyer_type.png)
-
-**Limitation:** This only measures order count and total spend, not the time between orders — a customer who places two orders in the same week counts as a "repeat buyer" the same as one who returns over years.
-
-**Further investigation:** Look at the time gap between first and second orders to separate genuine repeat behaviour from orders placed close together (e.g. split orders).
-
----
-
-### Q5: Which age group has the highest average revenue per customer?
-
-**Insight:** The 30–39 age group has the highest average revenue per customer at €2,949, compared with €2,700 for the lowest group (18–29). The spread across all six age groups is under 10% (8.5 percentage points), so age alone is not a strong differentiator of customer value — every group sits in a fairly narrow €2,700–€2,950 band.
+**Key finding:** The 30–39 age group has the highest average revenue per customer at €2,949, compared with €2,700 for the lowest group (18–29). The spread across all six age groups is under 10% (8.5 percentage points), so age alone is not a strong differentiator of customer value — every group sits in a fairly narrow €2,700–€2,950 band.
 
 **Chart:** ![Average revenue per customer by age group](figures/ltv_by_age_group.png)
 
-**Limitation:** Because this dataset is generated, the narrow, fairly even spread across age groups may reflect the data generation process rather than a real customer behaviour pattern.
+**Business interpretation:** Since the spread is narrow, age alone isn't a strong lever for targeting high-value customers — a broad age-based VIP or retention program would likely misallocate effort. Any genuinely high-value segment is more likely defined by a combination of attributes (age, loyalty status, order frequency) than by age in isolation.
 
 **Further investigation:** Combine age group with other dimensions (loyalty status, order frequency, country) to check whether age becomes a stronger differentiator once customers are segmented further.
+
+**Limitation:** Because this dataset is generated, the narrow, fairly even spread across age groups may reflect the data generation process rather than a real customer behaviour pattern.
+
+### Q4: Do loyalty programme members place more orders and spend more per order than non-members?
+
+**Key finding:** The loyalty group does not show a clear advantage in total revenue, average order value, or median order value. Loyalty members and non-members generate nearly identical revenue (€13.03M vs €13.18M) and average order value (€1,141 vs €1,137). This suggests that loyalty membership does not meaningfully change order-level spending — loyalty members do not appear to place larger baskets than non-members. The fact that average order value is considerably higher than median order value in both groups also points to a right-skewed distribution: most orders cluster near the median, while a small number of high-value orders pull the average upward.
+
+**Chart:** ![Loyalty vs non-loyalty revenue and order value comparison](figures/loyalty.png)
+
+**Business interpretation:** Loyalty membership may not be effective at increasing basket size. However, this does not mean the loyalty programme has no value — its impact may appear in other customer behaviours, such as repeat purchase frequency, retention, churn reduction, or customer lifetime value, none of which this chart measures.
+
+**Further investigation:** Investigate whether loyalty members purchase more frequently, stay active longer, or have higher customer lifetime value compared with non-members.
+
+**Limitation:** This comparison assumes the two groups are otherwise similar in size — worth confirming against the customer and order counts now shown on the updated chart before ruling out a spending difference entirely.
+
+---
+
+### Q5: What share of customers bought more than once, and how much more do repeat buyers spend on average compared to one-time buyers?
+
+**Key finding:** Repeat buyers dominate the customer base — 6,789 customers (85.2%) placed more than one order, versus 1,181 one-time buyers (14.8%). Repeat buyers also generate far more value per customer: €3,117 on average across 3.62 orders, compared to €901 for one-time buyers — a 3.5× difference. Most of NordHome's revenue is driven by customers who return, not by single-purchase acquisition.
+
+**Chart:** ![Repeat vs one-time buyer comparison](figures/buyer_type.png)
+
+**Business interpretation:** Retention, not acquisition, looks like the primary revenue engine here — converting one-time buyers into repeat customers is likely a higher-ROI lever than pure top-of-funnel acquisition spend, since repeat buyers already generate 3.5× the value per customer.
+
+**Further investigation:** Look at the time gap between first and second orders to separate genuine repeat behaviour from orders placed close together (e.g. split orders).
+
+**Limitation:** This only measures order count and total spend, not the time between orders — a customer who places two orders in the same week counts as a "repeat buyer" the same as one who returns over years.
+
+
+---
+
+### Q6: How is total revenue per customer distributed, and which customers fall outside the typical range?
+
+**Key finding:** Revenue per customer is heavily right-skewed. The typical range (Q1–Q3) runs from €1,228 to €3,537, but 267 customers — 3.4% of the 7,969-customer base — spend beyond the IQR-based upper bound of €7,000, including 118 who extend past €12,000, up to a maximum of €30,568.
+
+**Chart:** ![Customer revenue distribution with IQR outlier threshold](figures/customer_revenue_outliers.png)
+
+**Business interpretation:** A small group of high-spending customers sits well outside the typical range — this is worth treating as its own segment rather than folding into an "average customer" view. It connects to two earlier findings that relied on averages: Q4 showed average order value sitting well above median order value in both loyalty groups, a right-skew signature that matches what this full distribution confirms directly at the whole-customer-base level. It's also a reason to treat Q3's narrow per-age-group averages with some caution — a handful of outliers concentrated in one age group could shift that group's average without reflecting a real group-level difference. These 267 customers are candidates for a dedicated high-value segment.
+
+**Further investigation:** Profile the 267 flagged customers against dimensions already explored — market, age group, loyalty status, product category — to see whether this high-value segment overlaps with anything already found, e.g. is it concentrated in the 30–39 age group from Q3, or spread as evenly as most other dimensions in this dataset?
+
+**Limitation:** The IQR method (1.5× above Q3) is a statistical convention, not a business definition of "high-value" — it flags anyone unusually high relative to this dataset's own distribution, not necessarily customers meeting a specific lifetime-value target. Because this dataset is generated, the flagged group's characteristics should be validated against real customer data before being used to define an actual VIP segment.
+
+**Section summary:** Demographic and geographic dimensions — country, market, age group, and loyalty status — show almost no differentiation in customer value; NordHome's customer base is evenly spread across all of them, and average order value or revenue per customer barely moves between groups. The real differentiation is behavioral: repeat buyers (85% of customers) generate 3.5× more value per customer than one-time buyers, and within the base overall, a small group of 267 high-spending customers (3.4%) sits well outside the typical revenue range. Any real segmentation strategy should be built on purchase behavior and revenue tier, not demographics — age, country, and loyalty membership alone don't predict value in this dataset.
 
 ---
 
@@ -100,66 +155,59 @@ Further analysis should investigate whether loyalty members purchase more freque
 
 ### Q1: Which product categories drive the most revenue and unit sales?
 
-**Insight:** Category rank shifts depending on whether you measure revenue or volume — average price per unit explains why.
+**Key finding:** Gifts leads on both revenue (€5,509K) and units sold (115,815) — the strongest category outright. Below that, rank order flips between the two metrics: Beauty sells more units (99,153) than Lifestyle (95,875), yet Lifestyle generates more revenue (€5,294K vs €5,206K) thanks to a roughly 5% higher price per unit. Revenue per unit ranges from €47.57 (Gifts) to €58.24 (Kitchen), with Beauty (€52.50), Home (€53.11), and Lifestyle (€55.22) in between — Kitchen sits at the bottom on both revenue and units sold, despite having the highest revenue-per-unit of any category.
 
-**Finding:** Gifts leads on both revenue (€5,509K) and units sold (115,815) — it's the strongest category outright. But below that, rank order flips between the two metrics: Beauty sells more units (99,153) than Lifestyle (95,875), yet Lifestyle generates more revenue (€5,294K vs €5,206K). Kitchen sits at the bottom on both metrics, despite having the highest revenue-per-unit of any category (~€58/unit vs ~€47–55 elsewhere).
+**Chart:** ![Revenue, units sold, and revenue per unit by category](figures/revenue_units_by_category.png)
 
-**Chart:** ![Revenue and units sold by category](figures/revenue_units_by_category.png)
+**Business interpretation:** Gifts converts sales into revenue efficiently rather than winning on volume alone. Lifestyle vs. Beauty is a classic volume-vs-price trade-off: Beauty's growth lever is volume/reach (it already has the traffic), while Lifestyle's edge is pricing power, not scale. Kitchen is the concerning one — the highest price per unit across all categories isn't translating into revenue, since it also has the lowest unit volume and lowest total revenue, suggesting it may be price-sensitive or under-marketed relative to its price point. Revenue-only ranking (Gifts > Home > Lifestyle > Beauty > Kitchen) and units-only ranking (Gifts > Home > Beauty > Lifestyle > Kitchen) disagree specifically because of this price/volume trade-off, not because of noise.
 
-**Business interpretation:**
-- Gifts is the clear top performer — high volume and the highest revenue, meaning it converts sales into revenue efficiently rather than winning on volume alone.
-- Lifestyle vs. Beauty is a classic volume-vs-price trade-off: Beauty moves more units but at a lower average price point, while Lifestyle's roughly 5% higher price per item is enough to overtake Beauty on total revenue despite selling fewer units. This means Beauty's growth strategy should focus on volume/reach (it already has the traffic), while Lifestyle's edge is pricing power, not scale.
-- Kitchen is the concerning one. It has the highest price per unit across all categories, but the lowest unit volume and the lowest total revenue. High price alone isn't translating into revenue — this suggests Kitchen may be price-sensitive or under-marketed relative to its price point, since customers aren't buying it at the volume the other categories achieve.
+**Further investigation:** Break down Kitchen's revenue and units at the product level (see Q2) to check whether its low volume is spread evenly across the category or concentrated in a few underperforming products — that would clarify whether the issue is category-wide pricing or a handful of weak SKUs dragging the average down.
 
-**Why this matters:** Revenue alone would rank these categories Gifts > Home > Lifestyle > Beauty > Kitchen. Units alone would rank them Gifts > Home > Beauty > Lifestyle > Kitchen. Only looking at revenue-per-unit reveals why the middle categories swap — it's not noise, it's a real price/volume trade-off worth acting on differently per category.
-
-**Recommended next step:** For Kitchen specifically, check whether its higher price point correlates with lower return rate or higher return rate (tie back to the return-rate chart) — if Kitchen's high per-unit price is also driving its highest-in-category return rate (0.98%, per the return-rate chart), that's a stronger signal the category is currently overpriced relative to what customers are willing to keep, not just what they're willing to buy.
+**Limitation:** This category-level view assumes a reasonably uniform product mix within each category — a category's average revenue-per-unit could be skewed by one or two outlier-priced products rather than reflecting the category as a whole (see Q2 for product-level detail).
 
 ---
 
 ### Q2: Which individual products are the top 10 revenue contributors, and which categories do they come from?
 
-**Insight:** Gifts products dominate the top 10 best-sellers by revenue — 5 of the top 10 products belong to the Gifts category, including the single highest earner (Gourmet Hamper XL, €179K). Beauty, Lifestyle, and Home each contribute only 1–2 products to the top 10, with none matching Gifts' concentration at the top of the ranking.
-
-**Evidence:** The top 3 products by revenue are all Gifts (Gourmet Hamper XL €179K, Candle Collection Mini €177K, Candle Collection Organic €165K) before the first non-Gifts product appears (Shower Oil Organic, Beauty, €145K). The lowest of the top 10 (Woven Basket XL, Home) still earns €121K — a fairly tight band across all ten products (top is only 1.48× the tenth).
+**Key finding:** Gifts products dominate the top 10 best-sellers by revenue — 5 of the top 10 products belong to the Gifts category, including the single highest earner (Gourmet Hamper XL, €179K). Beauty, Lifestyle, and Home each contribute only 1–2 products to the top 10, with none matching Gifts' concentration at the top of the ranking. The top 3 products by revenue are all Gifts (Gourmet Hamper XL €179K, Candle Collection Mini €177K, Candle Collection Organic €165K) before the first non-Gifts product appears (Shower Oil Organic, Beauty, €145K). The lowest of the top 10 (Woven Basket XL, Home) still earns €121K — a fairly tight band across all ten products (top is only 1.48× the tenth).
 
 **Chart:** ![Top 10 products by revenue](figures/top10_products_revenue.png)
 
-**Limitation:** This ranks individual products, not whole categories — Gifts' strong presence here reflects a handful of stand-out SKUs, not proof that Gifts outperforms every other category in total revenue overall.
+**Business interpretation:** Gifts' strength at the top of the product ranking is consistent with its category-level lead in Q1, but here it's driven by a handful of standout SKUs rather than broad category performance — worth distinguishing "a few hit products" from "the whole category performs well" when deciding where to invest further.
 
 **Further investigation:** Compare this product-level ranking against total category revenue (not just top-10 presence) to check whether Gifts' strength here is driven by a few stand-out products or reflects genuinely stronger category-wide performance.
+
+**Limitation:** This ranks individual products, not whole categories — Gifts' strong presence here reflects a handful of stand-out SKUs, not proof that Gifts outperforms every other category in total revenue overall.
 
 ---
 
 ### Q3: Which product categories have the highest return rate, and where is the financial (refund) impact concentrated?
 
-**Insight:** Kitchen has the highest item return rate at 0.98%, and Gifts ties with Kitchen for the highest total refund value (~€131K each) — despite Gifts having the *lowest* return rate of all categories (0.77%). Return rate and refund value answer different business questions: Gifts is likely higher-priced and higher-volume, so even a below-average return rate still produces above-average refund euros.
-
-**Evidence:** Return rate ranges from 0.77% (Gifts) to 0.98% (Kitchen) — a narrow 0.21 percentage-point band across all 5 categories. Total refund value ranges from €121K (Home) to €131K (Gifts and Kitchen, tied within 0.18%).
+**Key finding:** Kitchen has the highest item return rate at 0.98%, and Gifts ties with Kitchen for the highest total refund value (~€131K each) — despite Gifts having the *lowest* return rate of all categories (0.77%). Return rate ranges from 0.77% (Gifts) to 0.98% (Kitchen) — a narrow 0.21 percentage-point band across all 5 categories. Total refund value ranges from €121K (Home) to €131K (Gifts and Kitchen, tied within 0.18%).
 
 **Chart:** ![Return rate and refund value by category](figures/return_rate_and_refund_value_by_category.png)
 
-**Limitation:** All five categories sit within a narrow band on both metrics — the spread is modest relative to typical return-rate variance. Because this dataset is generated, such an evenly clustered pattern may reflect the data generation process rather than a real product-quality signal, and the 0.18% gap between Gifts and Kitchen should not be read as a meaningful ranking.
+**Business interpretation:** Return rate and refund value answer different business questions — Gifts is likely higher-priced and higher-volume (confirmed in Q1), so even a below-average return rate still produces above-average refund euros. Reporting only one of these two metrics would give an incomplete, or even misleading, picture of which category carries the most return-related risk.
 
 **Further investigation:** Compute return rate and refund value per unit returned at the product level (not just category) to check whether specific SKUs, rather than whole categories, are driving returns.
+
+**Limitation:** All five categories sit within a narrow band on both metrics — the spread is modest relative to typical return-rate variance. Because this dataset is generated, such an evenly clustered pattern may reflect the data generation process rather than a real product-quality signal, and the 0.18% gap between Gifts and Kitchen should not be read as a meaningful ranking.
 
 ---
 
 ### Q4: How does gross margin estimated from catalog list price compare to gross margin realized from actual sales, by product category?
 
-**Insight:** NordHome is selling at a loss across every product category. Realized gross margin — calculated on actual transaction prices net of returns — is negative in every category, ranging from -5% (Lifestyle, Kitchen) to -30% (Beauty). The company's published/catalog pricing implies a healthy ~55% margin, but that margin is never actually being realized at the point of sale.
+**Key finding:** NordHome is selling at a loss across every product category. Realized gross margin — calculated on actual transaction prices net of returns — is negative in every category, ranging from -5% (Lifestyle, Kitchen) to -30% (Beauty). The company's published/catalog pricing implies a healthy ~55% margin, but that margin is never actually being realized at the point of sale.
 
 **Chart:** ![Catalog vs realized gross margin by category](figures/catalog_vs_realized_margin_by_category.png)
 
-**Business interpretation:** The gap between catalog and realized margin points to systemic pricing erosion — the business is pricing products to earn 55% margin on paper, but discounting, promotions, or price overrides are pushing actual sale prices low enough that the company loses money on every unit sold, before even accounting for fixed costs. Beauty and Gifts are the most severely affected (-30% and -24%), suggesting these categories are either the most heavily discounted or the most exposed to promotional/marketing-driven price cuts. Kitchen and Lifestyle are comparatively less damaged but still unprofitable.
+**Business interpretation:** The gap between catalog and realized margin points to systemic pricing erosion — the business is pricing products to earn 55% margin on paper, but discounting, promotions, or price overrides are pushing actual sale prices low enough that the company loses money on every unit sold, before even accounting for fixed costs. Beauty and Gifts are the most severely affected (-30% and -24%), suggesting these categories are either the most heavily discounted or the most exposed to promotional/marketing-driven price cuts. This isn't a rounding issue — a business cannot sustain negative unit economics at scale; growth in sales volume would actively accelerate losses rather than build revenue.
 
-**Why this matters:** This isn't a rounding issue — a business cannot sustain negative unit economics at scale. Left unaddressed, every additional order increases realized losses rather than profit, meaning growth in sales volume is actively accelerating losses rather than building revenue.
+**Further investigation:** Audit discounting practices by category, especially Beauty and Gifts, to identify whether promotions or price overrides are the driver. Cross-reference with the marketing campaigns table — if the negative-margin categories overlap with the most heavily promoted campaigns, that's a signal campaigns are being funded by margin, not incremental profit.
 
-**Recommended next steps (if this were real):**
-- Audit discounting practices by category, especially Beauty and Gifts, to identify whether promotions or price overrides are the driver.
-- Cross-reference with the marketing campaigns table — if the negative-margin categories overlap with the most heavily promoted campaigns, that's a strong signal campaigns are being funded by margin, not incremental profit.
-- Reassess whether `unit_cost` (cost of goods) is accurate — if COGS assumptions are stale or wrong, the "loss" could be overstated, but if confirmed accurate, pricing strategy needs immediate revision.
-- Treat this as a pricing governance issue: catalog price should not be allowed to diverge this far from realized price without an approval/reporting mechanism.
+**Limitation:** This assumes `unit_cost` (cost of goods) is accurate — if COGS assumptions are stale or wrong, the "loss" could be overstated; if confirmed accurate, pricing strategy needs immediate revision. This should be treated as a pricing governance issue: catalog price should not be allowed to diverge this far from realized price without an approval/reporting mechanism.
+
+**Section summary:** Gifts is the standout category — strongest on revenue, units, and product-level rankings. Kitchen is the concerning one: highest price per unit, lowest volume, lowest revenue, and the highest return rate, a combination that points to overpricing relative to demand. Return-related risk doesn't map cleanly onto revenue or return-rate rankings alone — Gifts carries the highest refund euros despite the lowest return rate, purely because of its scale. But the most urgent finding cuts across every category: realized gross margin is negative everywhere, meaning NordHome is currently losing money on every unit sold regardless of which category wins on revenue or volume — a pricing/discounting problem that needs to be resolved before category-level growth strategy matters.
 
 ---
 

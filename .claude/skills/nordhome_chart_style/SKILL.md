@@ -299,6 +299,44 @@ Rules:
 - Use grey for comparison lines.
 - Subtitle should explain the trend pattern.
 
+### 6. Distribution + threshold chart
+
+Use for "how is X distributed, and which records fall outside the typical
+range" questions (e.g. revenue per customer with IQR outliers). Prefer this
+over a box plot when the outlier count is large enough that jittered points
+would be hard to read individually.
+
+Rules:
+- **Histogram, not box plot**, as the default for this question shape — a box
+  plot with many jittered outlier points is harder to read than a colored
+  histogram tail.
+- **Bars: grey/blue-first, one spotlight.** Bars below the threshold in
+  `BLUE`/`ACCENT` (the typical range), bars past the threshold in `ORANGE`
+  (the flagged group) — same grey/accent-first logic as every other chart,
+  applied per-bar via bin edge instead of per-category.
+- **Threshold line, labeled directly**: `ax.axvline(threshold, linestyle='--')`
+  with the threshold value as a direct label next to the line — not just a
+  legend entry.
+- **Check tail legibility before deciding whether to cap the axis** — this is
+  a diagnostic, not a default. After plotting, look at the flagged region: are
+  the bars actually visible, or have they shrunk to sub-pixel slivers with a
+  long dead gap before the data max? Only if that symptom shows up, cap the
+  axis (`ax.set_xlim(0, x_cap)`) to give the legible part of the tail more
+  visual weight. A tail that's already legible at full scale should be left
+  alone — don't cap pre-emptively, and don't reuse a cap value from a
+  previous chart on a differently-shaped distribution.
+- **If you cap the axis, disclose what's cut — this part is not optional.**
+  Add a small note stating how many records fall outside the visible range
+  and what the true max is (e.g. "118 customers extend further, up to
+  €30,568"). Never truncate an axis silently — same "don't hide data quality
+  issues" principle as everywhere else in this project, applied to axis range
+  instead of dirty rows.
+- **Connect callouts to the data they describe.** A count/share label (e.g.
+  "267 customers (3.4%) beyond this line") should sit near the bars it refers
+  to, with a leader line/arrow if it can't sit directly adjacent — see the
+  `annotation` skill's callout-placement rule. Floating text far from the
+  flagged bars forces the reader to guess what it's pointing at.
+
 
 ## Mandatory post-build review (do not skip)
 
