@@ -155,29 +155,29 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 ### Q1: Which product categories drive the most revenue and unit sales?
 
-**Key finding:** Gifts leads on both revenue (€5,509K) and units sold (115,815) — the strongest category outright. Below that, rank order flips between the two metrics: Beauty sells more units (99,153) than Lifestyle (95,875), yet Lifestyle generates more revenue (€5,294K vs €5,206K) thanks to a roughly 5% higher price per unit. Revenue per unit ranges from €47.57 (Gifts) to €58.24 (Kitchen), with Beauty (€52.50), Home (€53.11), and Lifestyle (€55.22) in between — Kitchen sits at the bottom on both revenue and units sold, despite having the highest revenue-per-unit of any category.
+**Key finding:** Gifts leads on both revenue (€4,614K) and units sold (97,312) once returned, refunded, and cancelled orders are excluded — the strongest category outright. Unlike the gross-revenue view, revenue ranking now tracks units-sold ranking almost exactly for every category (Kitchen lowest → Lifestyle → Home → Beauty → Gifts highest on both). The one exception: Lifestyle and Home are virtually tied on revenue (€4,386K each, within 0.01%) despite Home selling ~6,000 more units (81,965 vs 76,295) — Lifestyle's ~7% higher revenue per unit (€57.48 vs €53.51) closes the gap. Revenue per unit ranges from €47.41 (Gifts) to €58.08 (Kitchen); Kitchen sits at the bottom on both revenue and units sold despite having the highest revenue-per-unit of any category.
 
 **Chart:** ![Revenue, units sold, and revenue per unit by category](figures/revenue_units_by_category.png)
 
-**Business interpretation:** Gifts converts sales into revenue efficiently rather than winning on volume alone. Lifestyle vs. Beauty is a classic volume-vs-price trade-off: Beauty's growth lever is volume/reach (it already has the traffic), while Lifestyle's edge is pricing power, not scale. Kitchen is the concerning one — the highest price per unit across all categories isn't translating into revenue, since it also has the lowest unit volume and lowest total revenue, suggesting it may be price-sensitive or under-marketed relative to its price point. Revenue-only ranking (Gifts > Home > Lifestyle > Beauty > Kitchen) and units-only ranking (Gifts > Home > Beauty > Lifestyle > Kitchen) disagree specifically because of this price/volume trade-off, not because of noise.
+**Business interpretation:** Gifts wins on genuine demand — highest revenue AND highest volume — not on a favorable price mix. Kitchen is still the concerning one: the highest price per unit across all categories isn't translating into revenue, since it also has the lowest unit volume and lowest total revenue, suggesting it may be price-sensitive or under-marketed relative to its price point. Lifestyle's near-tie with Home on revenue despite meaningfully lower volume is the one place price power still visibly offsets weaker demand — worth watching as a smaller-scale version of the Kitchen pattern rather than a strength.
 
 **Further investigation:** Break down Kitchen's revenue and units at the product level (see Q2) to check whether its low volume is spread evenly across the category or concentrated in a few underperforming products — that would clarify whether the issue is category-wide pricing or a handful of weak SKUs dragging the average down.
 
-**Limitation:** This category-level view assumes a reasonably uniform product mix within each category — a category's average revenue-per-unit could be skewed by one or two outlier-priced products rather than reflecting the category as a whole (see Q2 for product-level detail).
+**Limitation:** This category-level view assumes a reasonably uniform product mix within each category — a category's average revenue-per-unit could be skewed by one or two outlier-priced products rather than reflecting the category as a whole (see Q2 for product-level detail). Note this chart now excludes Returned/Refunded/Cancelled order lines (an earlier version of this query did not) — the revenue figures here are net of order status and are not directly comparable to any earlier gross-revenue figures reported elsewhere in this document.
 
 ---
 
 ### Q2: Which individual products are the top 10 revenue contributors, and which categories do they come from?
 
-**Key finding:** Gifts products dominate the top 10 best-sellers by revenue — 5 of the top 10 products belong to the Gifts category, including the single highest earner (Gourmet Hamper XL, €179K). Beauty, Lifestyle, and Home each contribute only 1–2 products to the top 10, with none matching Gifts' concentration at the top of the ranking. The top 3 products by revenue are all Gifts (Gourmet Hamper XL €179K, Candle Collection Mini €177K, Candle Collection Organic €165K) before the first non-Gifts product appears (Shower Oil Organic, Beauty, €145K). The lowest of the top 10 (Woven Basket XL, Home) still earns €121K — a fairly tight band across all ten products (top is only 1.48× the tenth).
+**Key finding:** Gifts products dominate the top 10 best-sellers by revenue — 6 of the top 10 products belong to the Gifts category, including the single highest earner (Gourmet Hamper XL, €154K). Beauty and Home each contribute 2 products to the top 10; Lifestyle drops out of the top 10 entirely. The top 3 products by revenue are all Gifts (Gourmet Hamper XL €154K, Candle Collection Mini €149K, Candle Collection Organic €148K), and Gifts also takes the 4th spot (Custom Phone Case Organic, €125K) before the first non-Gifts product appears (Shower Oil Organic, Beauty, €113K). The lowest of the top 10 (Detangling Brush Organic, Beauty) still earns €102K — a fairly tight band across all ten products (top is only 1.50× the tenth).
 
 **Chart:** ![Top 10 products by revenue](figures/top10_products_revenue.png)
 
-**Business interpretation:** Gifts' strength at the top of the product ranking is consistent with its category-level lead in Q1, but here it's driven by a handful of standout SKUs rather than broad category performance — worth distinguishing "a few hit products" from "the whole category performs well" when deciding where to invest further.
+**Business interpretation:** Gifts' strength at the top of the product ranking is consistent with its category-level lead in Q1, and here it's an even stronger concentration than a straightforward category read would suggest — worth distinguishing "a few hit products" from "the whole category performs well" when deciding where to invest further. Lifestyle's absence from the top 10 despite its solid category-level revenue standing (Q1) reinforces the Q1 finding that Lifestyle's revenue comes from steadier, higher-priced-but-lower-volume sales rather than standout hits.
 
 **Further investigation:** Compare this product-level ranking against total category revenue (not just top-10 presence) to check whether Gifts' strength here is driven by a few stand-out products or reflects genuinely stronger category-wide performance.
 
-**Limitation:** This ranks individual products, not whole categories — Gifts' strong presence here reflects a handful of stand-out SKUs, not proof that Gifts outperforms every other category in total revenue overall.
+**Limitation:** This ranks individual products, not whole categories — Gifts' strong presence here reflects a handful of stand-out SKUs, not proof that Gifts outperforms every other category in total revenue overall. This query excludes Returned/Refunded/Cancelled order lines but does not exclude the "Unknown" product category (unlike Q1) — worth aligning the two queries' filters for full consistency.
 
 ---
 
@@ -205,7 +205,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Further investigation:** Audit discounting practices by category, especially Beauty and Gifts, to identify whether promotions or price overrides are the driver. Cross-reference with the marketing campaigns table — if the negative-margin categories overlap with the most heavily promoted campaigns, that's a signal campaigns are being funded by margin, not incremental profit.
 
-**Limitation:** This assumes `unit_cost` (cost of goods) is accurate — if COGS assumptions are stale or wrong, the "loss" could be overstated; if confirmed accurate, pricing strategy needs immediate revision. This should be treated as a pricing governance issue: catalog price should not be allowed to diverge this far from realized price without an approval/reporting mechanism.
+**Limitation:** This assumes `unit_cost` (cost of goods) is accurate — if COGS assumptions are stale or wrong, the "loss" could be overstated; if confirmed accurate, pricing strategy needs immediate revision. This should be treated as a pricing governance issue: catalog price should not be allowed to diverge this far from realized price without an approval/reporting mechanism. There is also a VAT asymmetry between the two sides of this comparison: realized margin assumes `unit_price`/`line_total` are VAT-exclusive (a project-wide assumption, not a verified fact), while `list_price`'s VAT treatment could not be determined at all — it showed near-zero correlation with `unit_price` (r ≈ -0.001), so there's no reliable basis to confirm whether catalog margin is VAT-exclusive too. If `list_price` actually includes VAT, catalog margin is inflated and the true gap to realized margin is smaller than shown here.
 
 **Section summary:** Gifts is the standout category — strongest on revenue, units, and product-level rankings. Kitchen is the concerning one: highest price per unit, lowest volume, lowest revenue, and the highest return rate, a combination that points to overpricing relative to demand. Return-related risk doesn't map cleanly onto revenue or return-rate rankings alone — Gifts carries the highest refund euros despite the lowest return rate, purely because of its scale. But the most urgent finding cuts across every category: realized gross margin is negative everywhere, meaning NordHome is currently losing money on every unit sold regardless of which category wins on revenue or volume — a pricing/discounting problem that needs to be resolved before category-level growth strategy matters.
 
@@ -215,16 +215,16 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 ### Q1: How much of payment value is cleanly collected, and how concentrated is revenue across payment methods?
 
-**Insight:** Payment collection is fragmented across methods, and nearly 1 in 5 euros of payment value isn't cleanly collected.
+**Insight:** Payment collection is fragmented across methods, and almost 3 in 10 euros of payment value isn't cleanly collected.
 
-**Evidence:** Only 70.7% of total payment value lands as "Paid." The remainder is split across Pending (10.1%), Refunded (9.6%), Failed (4.8%), and Partially Refunded (4.7%) — nearly 30% of payment value sits outside a clean, completed transaction. On the method side, no single payment method dominates: Credit Card leads but only at 23.3%, with Debit Card, PayPal, and Bank Transfer essentially tied around 17–18%, and Klarna/BNPL (11.9%) and Apple Pay (11.6%) together accounting for close to a quarter of paid revenue.
+**Evidence:** Only 70.3% of total payment value lands as "Paid." The remainder is split across Pending (10.1%), Refunded (9.7%), Failed (4.9%), and Partially Refunded (5.0%) — nearly 30% of payment value sits outside a clean, completed transaction. On the method side, no single payment method dominates: Credit Card leads but only at 23.7%, with Debit Card (17.7%), Bank Transfer (17.6%), and PayPal (17.3%) essentially tied, and Klarna/BNPL (11.9%) and Apple Pay (11.8%) together accounting for close to a quarter of paid revenue.
 
 **Chart:** ![Payment status and method share](figures/payment_status_and_method_share.png)
 
 **Business interpretation:**
-- Failed payments (4.8%) are the most actionable line item — this is revenue lost purely to payment friction (declined cards, timeouts, technical failures), not customer intent to not buy. It's the most direct, quantifiable case for investing in payment retry logic or failure-recovery flows.
+- Failed payments (4.9%) are the most actionable line item — this is revenue lost purely to payment friction (declined cards, timeouts, technical failures), not customer intent to not buy. It's the most direct, quantifiable case for investing in payment retry logic or failure-recovery flows.
 - Pending (10.1%) is a cash-flow visibility risk, not necessarily a loss — but at this size, it's material enough that finance shouldn't treat gross order value as equivalent to collected cash when forecasting.
-- Refunded + Partially Refunded (~14.3% combined) lines up with the return-rate and margin findings already surfaced above (Kitchen's high return rate, negative realized margin) — this is a third independent signal pointing at the same underlying issue: a meaningful share of revenue doesn't stick.
+- Refunded + Partially Refunded (~14.7% combined) lines up with the return-rate and margin findings already surfaced above (Kitchen's high return rate, negative realized margin) — this is a third independent signal pointing at the same underlying issue: a meaningful share of revenue doesn't stick.
 - The flat payment-method distribution means no method can be deprioritized. Consolidating around "the top payment method" would put roughly three-quarters of paid revenue at risk, since the top four methods are all within a similar range. This also limits negotiating leverage with any single processor, since none of them is indispensable to volume in isolation — but none is safely droppable either.
 
 **Why this matters:** Three separate metrics (returns, margin, payments) are independently converging on the same story — a non-trivial share of revenue that looks "sold" doesn't convert into money the business actually keeps. That consistency across independently-sourced fact tables (`fact_returns`, `fact_order_items`, `fact_payments`) is itself a useful validation signal, not just a business finding — it suggests this isn't noise in one table, but a real pattern reflected across the data model.
@@ -245,11 +245,29 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 **Recommended next step:** Re-run the same proportional-deviation logic segmented by order value tier or product category instead of payment method — if unpaid risk concentrates by category (e.g., higher in Kitchen, consistent with its already-elevated return rate) or by order size, that's a stronger and more actionable lead than payment method was.
 
+**Section summary:** Payment collection, not payment method, is where the risk sits. Nearly 30% of payment value never reaches a clean "Paid" state — split across Pending (10.1%), Refunded (9.7%), Partially Refunded (5.0%), and Failed (4.9%) — and Failed is the clearest lever since it reflects payment friction, not lost customer intent. Payment method choice is not the driver of this risk: unpaid value is proportional to payment volume for every method, with the largest deviation (Credit Card) only +0.29pp. Combined with the returns and margin findings from earlier sections, this is a third independent signal that a meaningful share of "sold" revenue doesn't convert into collected cash — and the fix belongs in checkout/collection processes and order-level segmentation (value tier, category, time-to-payment), not in favoring one payment method over another.
+
 ---
 
 ## 5. Returns
 
-### Q1: How have item and revenue return rates trended year over year, and how does H1 2024 compare to previous years?
+### Q1: Which product categories are returned most often, and what reasons drive the most returns?
+
+**Insight:** Return volume is nearly identical across product categories, but heavily concentrated in one reason: customer preference.
+
+**Evidence:** Returns are spread evenly across categories, from 828 (Home) to 887 (Gifts) — a 7% spread across all five categories, so no category stands out as a return-volume hotspot. Return reasons tell a different story: "Customer preference" accounts for 1,358 returns, nearly double the next most common reason (Product information mismatch, 692), while Delivery issue (679), Price issue (675), Fulfillment issue (669), Order issue (666), and Product quality (664) are all tightly clustered together, with Unknown at 634.
+
+**Chart:** ![Return volume by category and reason](figures/returns_by_category_and_reason.png)
+
+**Business interpretation:** Since category barely differentiates return *volume*, category-specific fixes (e.g. targeting Kitchen or Gifts) won't meaningfully reduce total returns — though Q3 in the Products section shows Kitchen still leads on return *rate* relative to units sold, a different metric than the raw count here. The reason breakdown is more actionable: "Customer preference" being the single largest reason, well ahead of every operational reason (delivery, fulfillment, order, quality) individually, suggests returns are driven more by expectation-setting — product description, imagery, sizing — than by operational failures.
+
+**Further investigation:** Break down "Customer preference" returns by category and price tier — if concentrated in specific categories or higher-priced items, that points to a product-page or expectation-setting fix rather than a fulfillment or quality fix.
+
+**Limitation:** "Customer preference" is a broad catch-all reason — it doesn't distinguish "changed my mind" from "didn't match expectations" or other sub-reasons that would each imply a different fix. The two queries behind this chart also use different filters (`ghost_product_flag` for the category panel, `ghost_order_flag` for the reason panel), so totals aren't directly comparable between the two panels — each should be read as its own independent ranking.
+
+---
+
+### Q2: How have item and revenue return rates trended year over year, and how does H1 2024 compare to previous years?
 
 **Insight:** Both return rates remained relatively stable from 2021 to 2023, then increased clearly in H1 2024.
 
@@ -265,7 +283,7 @@ Benchmarked externally, NordHome's H1 2024 item return rate (9.74%) sits slightl
 
 ---
 
-### Q2: Which sales channel and which country have the highest order-level return rate, and how large are the differences?
+### Q3: Which sales channel and which country have the highest order-level return rate, and how large are the differences?
 
 **Insight:** Marketplace shows the highest return rate, but differences across channels are small.
 
@@ -279,22 +297,94 @@ Benchmarked externally, NordHome's H1 2024 item return rate (9.74%) sits slightl
 
 ---
 
+### Q4: Where specifically — which channel × country combination — do order return rates run highest, and is that variation meaningful?
+
+**Insight:** No single channel or country drives high returns on its own; the highest rates only show up when you cross the two dimensions, and even then the spread stays fairly narrow.
+
+**Evidence:** Across all 40 channel × country combinations, order-level return rate ranges from 17.0% to 22.0% (average 19.3%). The two highest cells are Phone orders in Switzerland (22.0%, 164 of 744 orders) and Website orders in Germany (22.0%, 171 of 778 orders) — each sits only ~2.7 percentage points above the overall average, and each is based on roughly 750–780 orders per cell.
+
+**Chart:** ![Order return rate heatmap by channel and country](figures/order_return_rate_heatmap.png)
+
+**Business interpretation:** This confirms and sharpens the Q3 finding — return rate isn't explained by channel alone or country alone, but crossing them does reveal two mildly elevated cells (Phone × Switzerland, Website × Germany). A 5-percentage-point range across 40 combinations, each with several hundred orders, is a modest spread — worth a note, not yet a strong enough signal to justify channel- or country-specific return policy changes on its own.
+
+**Further investigation:** Check whether Phone × Switzerland and Website × Germany stay elevated when re-cut by return reason or product category — if the elevated cells are driven by the same "Customer preference" pattern seen in Q1, that's a weaker, less actionable signal than if a specific operational reason (delivery, fulfillment) concentrates there.
+
+**Limitation:** With ~40 combinations and roughly 700–800 orders each, the two highest cells could plausibly reflect sampling noise rather than a genuine channel-country effect — a formal significance check (e.g. comparing each cell's return rate against the overall average with a proportion test) would be needed before treating this as a real pattern rather than normal variation.
+
+---
+
+**Section summary:** Return rates held steady for three years (2021–2023: ~8.2–8.7% of items, ~3.5–3.7% of revenue) before rising in H1 2024 (9.74% items, 4.02% revenue) — a real shift, though still within external benchmark ranges. Neither category, channel, nor country explains the pattern on its own: return volume is nearly flat across product categories (Q1), return rate is nearly flat across sales channels (19.1–19.8%) and countries (18.6–20.4%) (Q3), and even crossing channel with country only turns up a modest 17.0–22.0% range (Q4). The one dimension that does differentiate clearly is return *reason* — "Customer preference" accounts for far more returns than any operational cause (Q1), consistent with Kitchen's already-elevated item return rate from the Products section. Together, this points the 2024 investigation toward product-level and reason-level drivers — product descriptions, imagery, expectation-setting — rather than channel, country, or geography.
+
+---
+
 ## 6. Marketing
 
-- 
-- 
-- 
+### Q1: Which marketing channels generate the most clicks and conversions, and which channel converts at the highest rate?
 
-**Further investigation:** 
+**Insight:** Paid Social converts best, but the gap between the strongest and weakest channel is narrow.
+
+**Evidence:** Paid Social leads at 22.4% conversion (111 of 496 clicks), followed closely by SMS (21.2%), Push Notification (20.9%), Display (19.9%), Influencer (19.8%), and Email (19.6%). Affiliate trails at 18.1% (96 of 531 clicks) — the full range across all seven channels is only 4.3 percentage points.
+
+**Chart:** ![Conversion rate by marketing channel](figures/conversion_rate_by_channel.png)
+
+**Business interpretation:** No channel stands out as dramatically better or worse — a 4.3pp spread across roughly 500–540 clicks per channel is a small, possibly noisy gap rather than a decisive performance signal. Paid Social is the nominal leader, but treating this as a clear case for reallocating budget would be premature given how close every channel sits to the 18–22% band.
+
+**Further investigation:** Segment conversion rate by individual campaign within each channel (see Q2) — a channel-level average can mask a few standout or weak campaigns underneath it.
+
+**Limitation:** With 496–542 clicks per channel, a handful of additional conversions could shift the ranking — this should be read as directional, not a confirmed ranking, without a larger sample or a formal significance test.
+
+---
+
+### Q2: Which campaigns are most effective at converting customers, and which marketing channels drive this performance?
+
+**Insight:** The top-converting campaigns cluster around seasonal/promotional moments (Spring Refresh, Black Friday, Summer Sale) rather than any single channel.
+
+**Evidence:** Of the top 10 campaigns by conversion rate (filtered to campaigns with 30+ clicks), Spring Refresh 2022 and Spring Refresh 2024 tie for first at 38.24% — both via Push Notification, with identical volumes (34 clicks, 13 conversions). Black Friday 2022 (SMS) follows at 37.5%. Channels are mixed across the remaining top 10: Push Notification, SMS, Paid Social, Affiliate, Influencer, and Display all appear at least once.
+
+**Chart:** ![Top 10 campaigns by conversion rate](figures/top10_campaigns_conversion_rate.png)
+
+**Business interpretation:** The top campaigns aren't concentrated in one channel — Q1's channel-level ranking (Paid Social leading) doesn't hold once you look at individual campaigns; Paid Social appears twice in the top 10, but so do several other channels. This suggests campaign design and targeting matter more than channel choice alone. That two campaigns two years apart (Spring Refresh 2022, Spring Refresh 2024) return an identical click and conversion count (34/13) is unusual and worth flagging rather than treating as a repeatable seasonal effect.
+
+**Further investigation:** Check whether seasonal campaign types (Spring Refresh, Black Friday, Summer Sale) systematically outperform always-on/non-seasonal campaigns across the full campaign list, not just this top-10 cut.
+
+**Limitation:** All top 10 campaigns have small click volumes (31–42), close to the >30-click filter threshold — conversion rates from samples this small are noisy, and the exact duplicate result (Spring Refresh 2022 vs. 2024) suggests this may reflect the synthetic data generation process rather than a genuine, repeatable campaign effect.
+
+---
+
+### Q3: Which marketing channels convert loyalty members more effectively than non-members, and where should NordHome tailor its targeting strategy?
+
+**Insight:** Loyalty members convert better through direct, opt-in channels (Push Notification, SMS, Influencer); non-members convert better through Email.
+
+**Evidence:** Loyalty members show meaningfully higher conversion on Push Notification (22.6% vs. 19.0%, +3.6pp), SMS (22.9% vs. 19.5%, +3.4pp), and Influencer (20.9% vs. 18.8%, +2.1pp). Non-members convert better on Email (20.6% vs. 18.7% for loyalty members — a 1.9pp gap in the opposite direction). Paid Social, Display, and Affiliate show only small gaps (within 0.4pp) either way.
+
+**Chart:** ![Loyalty vs. non-loyalty conversion by channel](figures/loyalty_conversion_dumbbell.png)
+
+**Business interpretation:** This is a more targeted, actionable version of Q1/Q2 — rather than picking one "best" channel overall, NordHome could route loyalty members toward Push Notification and SMS (channels that already require an opt-in relationship, consistent with a loyalty member's existing engagement) and prioritize Email for reaching non-members, instead of applying one channel strategy across all customers.
+
+**Further investigation:** Test whether this pattern holds at the campaign level (cross with Q2) — are loyalty members specifically driving the Push Notification top-campaign results seen in Q2 (Spring Refresh 2022/2024)?
+
+**Limitation:** Each channel × loyalty-status combination has a consistent ~250–285 clicks, which makes this comparison more reliable than Q2's — but the gaps (2–4pp) are still modest enough to treat as directional rather than confirmed, until re-tested on more data or over a longer period.
+
+---
+
+**Section summary:** Channel-level conversion differences are narrow on their own (Q1: a 4.3pp range across all seven channels), and the strongest campaigns don't concentrate in one channel either (Q2: top 10 spans six different channels). The clearest, most actionable pattern only appears once you segment by audience: loyalty members convert better through direct, opt-in channels (Push Notification, SMS, Influencer), while non-members respond better to Email (Q3). This reframes the original question from "which channel is best" to "which channel is best for which audience" — NordHome's targeting strategy should split by loyalty status rather than lead with a single company-wide channel priority.
 
 ---
 
 ## Open Questions
 
-Questions raised during EDA that need deeper investigation in the analysis folders.
+Questions raised during EDA that need deeper investigation in the analysis folders, ordered by business severity (most severe first).
 
-- 
-- 
+1. **Verify `unit_cost` accuracy and resolve the `list_price` VAT treatment** (Products Q4) — the "NordHome loses money on every unit sold" finding depends on both being correct; if COGS is stale or `list_price` turns out to include VAT, the true margin gap could be smaller, or the loss claim could be wrong entirely.
+2. **Audit discounting practices by category, especially Beauty and Gifts, and cross-reference against marketing campaigns** (Products Q4) — needed to identify *why* realized margin is negative before any pricing fix can be proposed.
+3. **Confirm cancelled, returned, and refunded order values are mutually exclusive** in the order-status impact calculation (Revenue Q3) — double-counting here would overstate the 16–17% "lost value" figure, a headline financial metric in this project.
+4. **Quantify whether Failed and Pending payments concentrate in specific categories or payment methods** (Payments Q1) — turns the "nearly 30% of payment value isn't cleanly collected" finding into an actionable fix rather than a general observation.
+5. **Segment unpaid payment risk by order value tier or product category** (Payments Q2) — payment method was ruled out as the driver; this is the next most likely lead.
+6. **Identify which product categories, channels, or customer segments drove the H1 2024 return-rate increase** (Returns Q2 / section summary) — determines whether 2024 is a real emerging problem or a short-term blip.
+7. **Break down "Customer preference" returns by category and price tier** (Returns Q1) — the dominant return reason is too broad to act on without this cut.
+8. **Profile the 267 flagged high-value customers against market, age group, loyalty status, and category** (Customers Q6) — needed to confirm whether a real, targetable VIP segment exists or whether it's evenly spread like everything else.
+9. **Check whether loyalty members purchase more frequently or show higher lifetime value than non-members** (Customers Q4) — basket size shows no loyalty effect, so the program's value, if any, must be justified on a different metric.
+10. **Test whether the loyalty-channel conversion pattern holds at the individual campaign level** (Marketing Q3) — confirms whether Push Notification/SMS is genuinely stronger for loyalty members or just an average-level artifact.
 
 
 ## limitations
