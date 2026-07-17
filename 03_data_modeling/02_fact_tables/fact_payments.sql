@@ -8,9 +8,16 @@ Dimension joins:
 - customer_key     → dim_customer   (customer_id is on the order, not the payment)
 - payment_date_key → dim_date
 
-Order-level context (order_status, country, sales_channel) is denormalized
-from stg_orders to support slicing payment revenue by geography and channel
-without joining back through the order layer.
+Order-level context (order_status, sales_channel) is denormalized
+from stg_orders to support slicing payment revenue by channel
+without joining back through the order layer. order_status reflects the value
+at order creation only; no status history is tracked (see model_documentation.md
+section 4.1).
+
+country is intentionally NOT included here. raw_orders.country is assigned
+independently at random per order and carries no real geographic signal —
+see fact_order_items.sql for the proof. Use dim_customer.country (via
+customer_key) for any country-based analysis instead.
 
 payment_amount is the single measure. Use payment_status from dim_payment
 to filter for 'Paid' rows only when calculating realized revenue.
@@ -34,7 +41,6 @@ CREATE TABLE mart.fact_payments (
 
     -- Order-level context
     order_status                 TEXT,
-    country                      TEXT,
     sales_channel                TEXT,
 
     -- Measures
@@ -53,7 +59,6 @@ INSERT INTO mart.fact_payments (
     payment_key,
     payment_date_key,
     order_status,
-    country,
     sales_channel,
     payment_amount,
     ghost_order_flag
@@ -65,7 +70,6 @@ SELECT
     COALESCE(dp.payment_key,  -1)                  AS payment_key,
     TO_CHAR(p.payment_date, 'YYYYMMDD')::INT       AS payment_date_key,
     COALESCE(o.order_status,  'Unknown')           AS order_status,
-    COALESCE(o.country,       'Unknown')           AS country,
     COALESCE(o.sales_channel, 'Unknown')           AS sales_channel,
     p.payment_amount,
     COALESCE(p.ghost_order_flag, FALSE) AS ghost_order_flag

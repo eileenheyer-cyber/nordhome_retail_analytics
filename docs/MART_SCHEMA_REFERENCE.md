@@ -146,7 +146,6 @@ No unknown-fallback row needed — every reason is mapped inline (blank/NULL →
 | `product_key` | integer | FK → `dim_product` |
 | `order_date_key` | integer | FK → `dim_date` |
 | `order_status` | text | denormalized from order |
-| `country` | text | denormalized from order |
 | `sales_channel` | text | denormalized from order |
 | `shipping_method` | text | denormalized from order |
 | `quantity` | integer | measure |
@@ -157,6 +156,8 @@ No unknown-fallback row needed — every reason is mapped inline (blank/NULL →
 | `zero_unit_price_flag` | boolean | |
 | `line_total_mismatch_flag` | boolean | |
 | `created_at` | timestamp | |
+
+⚠️ **No `country` column** — `raw_orders.country` is assigned independently at random per order (89.9% mismatch against the same customer's `dim_customer.country`; distinct-country-count per customer matches the uniform-random-draw expectation exactly). Removed 2026-07-17. Use `dim_customer.country` (join on `customer_key`) for any country-based analysis — same caveat applies to `fact_payments` and `fact_returns` below.
 
 ---
 
@@ -172,7 +173,6 @@ No unknown-fallback row needed — every reason is mapped inline (blank/NULL →
 | `return_reason_key` | integer | FK → `dim_return_reason` (nullable) |
 | `return_date_key` | integer | FK → `dim_date` |
 | `order_status` | text | denormalized — may not match `fact_order_items.order_status` for the same `order_id` |
-| `country` | text | denormalized |
 | `sales_channel` | text | denormalized |
 | `refund_amount` | numeric | measure — use for Cash-Based Net Revenue |
 | `ghost_product_flag` | boolean | ~30% of rows — exclude for product-level attribution, keep for company-wide totals |
@@ -194,7 +194,6 @@ No unknown-fallback row needed — every reason is mapped inline (blank/NULL →
 | `payment_key` | integer | FK → `dim_payment` |
 | `payment_date_key` | integer | FK → `dim_date` |
 | `order_status` | text | denormalized |
-| `country` | text | denormalized |
 | `sales_channel` | text | denormalized |
 | `payment_amount` | numeric | measure |
 | `ghost_order_flag` | boolean | |

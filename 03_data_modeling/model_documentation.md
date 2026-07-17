@@ -24,20 +24,22 @@ All 4 fact tables share `dim_customer` and `dim_date` as conformed dimensions.
                              dim_date
                                 ↑
 dim_customer ←── fact_order_items ──────────────────→ dim_product
-                 (order_status, country,
+                 (order_status,
                   sales_channel, shipping_method
                   denormalized on fact)
 
 dim_customer ←── fact_payments ─────────────────────→ dim_payment
-                 (order_status, country,
+                 (order_status,
                   sales_channel denormalized on fact)
 
 dim_customer ←── fact_returns ──────────────────────→ dim_product
-                 (order_status, country,              → dim_return_reason
+                 (order_status,                        → dim_return_reason
                   sales_channel denormalized on fact)
 
 dim_customer ←── fact_marketing_touchpoints ─────────→ dim_marketing_campaigns
 ```
+
+`country` lives only on `dim_customer` — not denormalized onto any fact table. See §4.1.
 
 ### 2.1 Build Order
 
@@ -76,9 +78,17 @@ A `dim_order` table was considered but removed during modelling review.
 
 In a Kimball star schema, orders are facts (they carry measures: revenue, quantity), not dimensions. Storing them as a separate dimension creates an unnecessary outrigger join on every query.
 
-Instead, order-level descriptive attributes — `order_status`, `country`, `sales_channel`, `shipping_method` — are denormalized directly onto `fact_order_items`, `fact_payments`, and `fact_returns`. These attributes have the same value for every row that belongs to the same order, so denormalization adds no redundancy risk.
+Instead, order-level descriptive attributes — `order_status`, `sales_channel`, `shipping_method` — are denormalized directly onto `fact_order_items`, `fact_payments`, and `fact_returns`. These attributes have the same value for every row that belongs to the same order, so denormalization adds no redundancy risk.
 
 `order_id` is retained as a degenerate dimension on each fact table for direct lookup and cross-fact joining without needing a separate table.
+
+**Trade-off / limitation:** Order-level attributes (order_status, sales_channel, shipping_method) are denormalized as of order creation. If order_status ever needed to be tracked as it changes over time (pending → shipped → delivered), this design would not capture that history — the fact row holds only the current value. This is acceptable for the current dataset, which does not model status transitions, but would need revisiting if status history became a business question.
+
+**`country` deliberately excluded (2026-07-17):** `raw_orders.country` was initially denormalized onto the fact tables alongside the other order-level attributes, same as `order_status` and `sales_channel`. Investigation prompted by a modelling review found it does not behave like a real order attribute: comparing `raw_orders.country` to the ordering customer's `raw_customers.country` (via `stg_orders.customer_id`) shows an 89.9% mismatch rate, and the number of distinct countries appearing across a single customer's orders matches — almost to the decimal — the expected value for drawing uniformly at random from 10 categories with replacement (e.g. a customer with 6 orders averages 4.68 distinct countries, versus a formula-predicted 4.69). This is conclusive evidence the value is assigned independently at random per order, not sourced from any real shipping/billing address logic.
+
+**Decision:** `country` is not carried onto any fact table. `dim_customer.country` is the only country field in the model. Any country-based analysis (revenue by country, return rate by country, etc.) must join to `dim_customer` via `customer_key`. Fact-table `country` was removed from `fact_order_items`, `fact_payments`, and `fact_returns` on 2026-07-17 — see the header comment in each `.sql` file in `03_data_modeling/02_fact_tables/` for the same rationale.
+
+**Limitation carried forward:** `dim_customer.country` is itself one random draw per customer at data-generation time (see §4.7-adjacent EDA notes on balanced demographic distributions) — it is stable and safe to use as a segmentation key, but should not be over-interpreted as reflecting real customer geography either.
 
 ### 4.2 Payment split — dim_payment and fact_payments
 
@@ -238,7 +248,6 @@ If one order contains three products, the fact table contains three rows for tha
 | `product_key` | INT | FK → dim_product |
 | `order_date_key` | INT | FK → dim_date |
 | `order_status` | TEXT | Denormalized from stg_orders |
-| `country` | TEXT | Denormalized from stg_orders |
 | `sales_channel` | TEXT | Denormalized from stg_orders |
 | `shipping_method` | TEXT | Denormalized from stg_orders |
 | `quantity` | INT | Measure |
@@ -266,7 +275,6 @@ If one order contains three products, the fact table contains three rows for tha
 | `payment_key` | INT | FK → dim_payment |
 | `payment_date_key` | INT | FK → dim_date |
 | `order_status` | TEXT | Denormalized from stg_orders |
-| `country` | TEXT | Denormalized from stg_orders |
 | `sales_channel` | TEXT | Denormalized from stg_orders |
 | `payment_amount` | NUMERIC(12,2) | Measure |
 | `ghost_order_flag` | BOOLEAN | Payment references an order not in raw_orders |
@@ -291,7 +299,6 @@ If one order contains three products, the fact table contains three rows for tha
 | `return_reason_key` | INT | FK → dim_return_reason (nullable) |
 | `return_date_key` | INT | FK → dim_date |
 | `order_status` | TEXT | Denormalized from stg_orders |
-| `country` | TEXT | Denormalized from stg_orders |
 | `sales_channel` | TEXT | Denormalized from stg_orders |
 | `refund_amount` | NUMERIC(12,2) | Measure — ABS-corrected value from staging |
 | `ghost_product_flag` | BOOLEAN | Product ID is a ghost record |
@@ -425,6 +432,7 @@ GROUP BY dc.customer_id;
 | `birth_year < 1900` | Bucketed as Unknown — catches 1800/1890 placeholder values from source data |
 | `order_id` on fact tables | Degenerate dimension — enables cross-fact joins without dim_order |
 | Duplicate customer identity (2026-07-03) | Added `duplicate_customer_flag` + `canonical_customer_key` to dim_customer — additive only, no rows merged or deleted |
+| `country` on fact tables (2026-07-17) | Removed from `fact_order_items`, `fact_payments`, `fact_returns` — proven to be assigned independently at random per order, not real order geography. `dim_customer.country` is now the only country field in the model |
 
 ---
 

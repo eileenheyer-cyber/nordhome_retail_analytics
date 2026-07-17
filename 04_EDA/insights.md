@@ -22,7 +22,7 @@ Key findings from `nordhome_eda.ipynb`. Fill in after running the notebook.
 
 ### Q2: Which countries and sales channels generate the most revenue?
 
-**Insight:** No single country dominates. The top three markets are Denmark (€2.97M, 11.1%), France (€2.75M, 10.3%), and Poland (€2.68M, 10.1%), with the remaining countries spread evenly below. Sales channels are nearly identical in volume: Marketplace 25.5%, Phone 25.0%, Mobile App 24.8%, Website 24.8%. Revenue is structurally well distributed across both dimensions.
+**Insight:** No single country dominates. The top three markets are Germany (€2.78M, 10.6%), Norway (€2.74M, 10.5%), and France (€2.71M, 10.3%), with the remaining countries spread evenly down to Poland (€2.42M, 9.2%) — a 1.4 percentage-point spread across all ten. Sales channels are nearly identical in volume: Marketplace 25.5%, Phone 25.0%, Mobile App 24.8%, Website 24.8%. Revenue is structurally well distributed across both dimensions.
 
 **Chart:** ![Revenue by country and sales channel](figures/country.png)
 
@@ -301,19 +301,19 @@ Benchmarked externally, NordHome's H1 2024 item return rate (9.74%) sits slightl
 
 **Insight:** No single channel or country drives high returns on its own; the highest rates only show up when you cross the two dimensions, and even then the spread stays fairly narrow.
 
-**Evidence:** Across all 40 channel × country combinations, order-level return rate ranges from 17.0% to 22.0% (average 19.3%). The two highest cells are Phone orders in Switzerland (22.0%, 164 of 744 orders) and Website orders in Germany (22.0%, 171 of 778 orders) — each sits only ~2.7 percentage points above the overall average, and each is based on roughly 750–780 orders per cell.
+**Evidence:** Across all 40 channel × country combinations, order-level return rate ranges from 16.0% to 22.8% (average 19.0%). The two highest cells are Marketplace orders in the Netherlands (22.8%, 170 of 745 orders) and Marketplace orders in Denmark (21.9%, 173 of 791 orders) — 3.8 and 2.9 percentage points above the overall average respectively, each based on roughly 750–790 orders. The lowest cell is Marketplace orders in Switzerland (16.0%, 137 of 857 orders).
 
 **Chart:** ![Order return rate heatmap by channel and country](figures/order_return_rate_heatmap.png)
 
-**Business interpretation:** This confirms and sharpens the Q3 finding — return rate isn't explained by channel alone or country alone, but crossing them does reveal two mildly elevated cells (Phone × Switzerland, Website × Germany). A 5-percentage-point range across 40 combinations, each with several hundred orders, is a modest spread — worth a note, not yet a strong enough signal to justify channel- or country-specific return policy changes on its own.
+**Business interpretation:** This confirms and sharpens the Q3 finding — return rate isn't explained by channel alone or country alone, but crossing them does reveal a couple of mildly elevated cells (Marketplace × Netherlands, Marketplace × Denmark). A roughly 6.8-percentage-point range across 40 combinations, each with several hundred orders, is a modest spread — worth a note, not yet a strong enough signal to justify channel- or country-specific return policy changes on its own.
 
-**Further investigation:** Check whether Phone × Switzerland and Website × Germany stay elevated when re-cut by return reason or product category — if the elevated cells are driven by the same "Customer preference" pattern seen in Q1, that's a weaker, less actionable signal than if a specific operational reason (delivery, fulfillment) concentrates there.
+**Further investigation:** Check whether Marketplace × Netherlands and Marketplace × Denmark stay elevated when re-cut by return reason or product category — if the elevated cells are driven by the same "Customer preference" pattern seen in Q1, that's a weaker, less actionable signal than if a specific operational reason (delivery, fulfillment) concentrates there.
 
-**Limitation:** With ~40 combinations and roughly 700–800 orders each, the two highest cells could plausibly reflect sampling noise rather than a genuine channel-country effect — a formal significance check (e.g. comparing each cell's return rate against the overall average with a proportion test) would be needed before treating this as a real pattern rather than normal variation.
+**Limitation:** With ~40 combinations and roughly 700–860 orders each, the two highest cells could plausibly reflect sampling noise rather than a genuine channel-country effect — a formal significance check (e.g. comparing each cell's return rate against the overall average with a proportion test) would be needed before treating this as a real pattern rather than normal variation.
 
 ---
 
-**Section summary:** Return rates held steady for three years (2021–2023: ~8.2–8.7% of items, ~3.5–3.7% of revenue) before rising in H1 2024 (9.74% items, 4.02% revenue) — a real shift, though still within external benchmark ranges. Neither category, channel, nor country explains the pattern on its own: return volume is nearly flat across product categories (Q1), return rate is nearly flat across sales channels (19.1–19.8%) and countries (18.6–20.4%) (Q3), and even crossing channel with country only turns up a modest 17.0–22.0% range (Q4). The one dimension that does differentiate clearly is return *reason* — "Customer preference" accounts for far more returns than any operational cause (Q1), consistent with Kitchen's already-elevated item return rate from the Products section. Together, this points the 2024 investigation toward product-level and reason-level drivers — product descriptions, imagery, expectation-setting — rather than channel, country, or geography.
+**Section summary:** Return rates held steady for three years (2021–2023: ~8.2–8.7% of items, ~3.5–3.7% of revenue) before rising in H1 2024 (9.74% items, 4.02% revenue) — a real shift, though still within external benchmark ranges. Neither category, channel, nor country explains the pattern on its own: return volume is nearly flat across product categories (Q1), return rate is nearly flat across sales channels (19.1–19.8%) and countries (18.0–20.2%) (Q3), and even crossing channel with country only turns up a modest 16.0–22.8% range (Q4). The one dimension that does differentiate clearly is return *reason* — "Customer preference" accounts for far more returns than any operational cause (Q1), consistent with Kitchen's already-elevated item return rate from the Products section. Together, this points the 2024 investigation toward product-level and reason-level drivers — product descriptions, imagery, expectation-setting — rather than channel, country, or geography.
 
 ---
 

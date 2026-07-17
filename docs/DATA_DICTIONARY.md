@@ -53,7 +53,7 @@ One row per order placed. An order may contain multiple items (`raw_order_items`
 | `customer_id` | STRING | FK → `raw_customers.customer_id` | ~0.8 % reference non-existent customers |
 | `order_date` | DATE | Date order was placed | Mixed formats |
 | `order_status` | STRING | `Completed`, `Shipped`, `Processing`, `Cancelled`, `Returned`, `Refunded` | May mismatch payment_status |
-| `country` | STRING | Country where order was shipped | Clean (uses canonical country names) |
+| `country` | STRING | Nominally "country where order was shipped," but values are assigned independently at random per order — 89.9% mismatch against the same customer's `raw_customers.country`, with distinct-country-count per customer matching the uniform-random-draw expectation exactly. Formatting is clean (canonical country names); the values themselves carry no real geographic signal. Excluded from `mart` fact tables as of 2026-07-17 — see `model_documentation.md` §4.1. | Clean formatting, but not a trustworthy business field |
 | `sales_channel` | STRING | `Website`, `Mobile App`, `Marketplace`, `Phone` | Clean |
 | `shipping_method` | STRING | `Standard`, `Express`, `Next Day`, `Click & Collect`, `Free Shipping` | Clean |
 

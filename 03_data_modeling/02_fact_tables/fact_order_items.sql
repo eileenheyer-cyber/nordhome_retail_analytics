@@ -8,10 +8,17 @@ Dimension joins:
 - product_key     → dim_product
 - order_date_key  → dim_date
 
-Order-level attributes (order_status, country, sales_channel, shipping_method)
+Order-level attributes (order_status, sales_channel, shipping_method)
 are denormalized onto the fact to avoid an extra join on every query.
 order_id is kept as a degenerate dimension so fact_payments and fact_returns
 can be joined back to line items without a separate dim_order table.
+
+country is intentionally NOT included here. raw_orders.country is assigned
+independently at random per order (proven: distinct-country-count per customer
+matches the expected value for uniform random draws with replacement) and is
+89.9% inconsistent with the same customer's dim_customer.country. It carries
+no real geographic signal. Use dim_customer.country (via customer_key) for any
+country-based analysis instead.
 
 Ghost products are included and flagged — exclude ghost_product_flag = TRUE
 for clean revenue and margin reporting.
@@ -35,7 +42,6 @@ CREATE TABLE mart.fact_order_items (
 
     -- Order-level attributes (same value for every line item on the same order)
     order_status              TEXT,
-    country                   TEXT,
     sales_channel             TEXT,
     shipping_method           TEXT,
 
@@ -60,7 +66,6 @@ INSERT INTO mart.fact_order_items (
     product_key,
     order_date_key,
     order_status,
-    country,
     sales_channel,
     shipping_method,
     quantity,
@@ -78,7 +83,6 @@ SELECT
     COALESCE(dp.product_key,  -1)                    AS product_key,
     TO_CHAR(o.order_date, 'YYYYMMDD')::INT           AS order_date_key,
     COALESCE(o.order_status,    'Unknown')           AS order_status,
-    COALESCE(o.country,         'Unknown')           AS country,
     COALESCE(o.sales_channel,   'Unknown')           AS sales_channel,
     COALESCE(o.shipping_method, 'Unknown')           AS shipping_method,
     oi.quantity,

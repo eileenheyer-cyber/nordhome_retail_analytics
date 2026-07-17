@@ -9,8 +9,15 @@ Dimension joins:
 - return_reason_key → dim_return_reason (text-based join on return_reason value)
 - return_date_key   → dim_date
 
-Order-level context (order_status, country, sales_channel) is denormalized from
-stg_orders to enable return rate analysis by geography and channel.
+Order-level context (order_status, sales_channel) is denormalized from
+stg_orders to enable return rate analysis by channel. order_status
+reflects the value at order creation only; no status history is tracked (see
+model_documentation.md section 4.1).
+
+country is intentionally NOT included here. raw_orders.country is assigned
+independently at random per order and carries no real geographic signal —
+see fact_order_items.sql for the proof. Use dim_customer.country (via
+customer_key) for any country-based analysis instead.
 
 return_reason_key is nullable: dim_return_reason has no -1 fallback row because
 all return reasons from staging are mapped inline. If a reason somehow has no match,
@@ -39,7 +46,6 @@ CREATE TABLE mart.fact_returns (
 
     -- Order-level context
     order_status              TEXT,
-    country                   TEXT,
     sales_channel             TEXT,
 
     -- Measures
@@ -60,7 +66,6 @@ INSERT INTO mart.fact_returns (
     return_reason_key,
     return_date_key,
     order_status,
-    country,
     sales_channel,
     refund_amount,
     ghost_product_flag,
@@ -74,7 +79,6 @@ SELECT
     drr.return_reason_key,
     TO_CHAR(r.return_date, 'YYYYMMDD')::INT         AS return_date_key,
     COALESCE(o.order_status,   'Unknown')           AS order_status,
-    COALESCE(o.country,        'Unknown')           AS country,
     COALESCE(o.sales_channel,  'Unknown')           AS sales_channel,
     r.refund_amount,
     COALESCE(r.ghost_product_flag, FALSE)                        AS ghost_product_flag,
