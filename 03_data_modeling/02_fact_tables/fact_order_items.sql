@@ -22,6 +22,10 @@ country-based analysis instead.
 
 Ghost products are included and flagged — exclude ghost_product_flag = TRUE
 for clean revenue and margin reporting.
+
+quantity is sourced from stg_order_items.quantity_capped, not quantity_raw/quantity.
+228 rows had a corrupted quantity (>99, up to 1996) in the raw data; quantity_capped
+back-solves the real value from line_total_original — see stg_order_items.sql.
 */
 
 CREATE SCHEMA IF NOT EXISTS mart;
@@ -85,7 +89,7 @@ SELECT
     COALESCE(o.order_status,    'Unknown')           AS order_status,
     COALESCE(o.sales_channel,   'Unknown')           AS sales_channel,
     COALESCE(o.shipping_method, 'Unknown')           AS shipping_method,
-    oi.quantity,
+    oi.quantity_capped                               AS quantity,
     oi.unit_price,
     oi.discount,
     oi.line_total_clean                              AS line_total,

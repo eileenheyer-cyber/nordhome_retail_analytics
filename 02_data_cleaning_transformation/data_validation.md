@@ -1178,4 +1178,44 @@ The main modelling approach is:
 
 This keeps the analysis honest while preserving useful business information.
 
+---
+
+## 10. Extreme Order Item Quantities (Corrupted Data Recovery)
+
+**Purpose:** Confirm scope and fix for order items with implausible `quantity` values (up to 1996).
+
+```sql
+SELECT
+    COUNT(*) AS extreme_rows,
+    COUNT(*) FILTER (
+        WHERE ROUND(line_total_original / NULLIF(unit_price*(1-discount),0)) BETWEEN 1 AND 5
+          AND ABS(line_total_original / NULLIF(unit_price*(1-discount),0)
+                  - ROUND(line_total_original / NULLIF(unit_price*(1-discount),0))) < 0.02
+    ) AS cleanly_recoverable
+FROM stg.stg_order_items
+WHERE quantity_original > 99;
+```
+
+**Result:**
+
+| Metric | Value |
+|---|---:|
+| extreme_rows | 228 (0.30% of rows) |
+| cleanly_recoverable | 216 |
+
+**Root cause:** confirmed in `scripts/generate_retail_dataset.py` — the generator computes `line_total` from a real quantity (1-5) first, then overwrites `quantity` with a random 500-2000 value on ~0.3% of rows. `line_total_original` still reflects the true quantity.
+
+**Interpretation:** 216/228 rows back-solve to a clean integer 1-5 from `line_total_original`, confirming that value is trustworthy. The other 11 don't resolve cleanly (implied quantity >5, impossible) — these also hit an independent "wrong total" corruption rule, so neither field is fully trustworthy for them; back-solved value used as a clamped (1-5) best estimate.
+
+**Revenue impact:** old recalculated total for these 228 rows: €2,369,765.72. Corrected (trusting `line_total_original`): €71,081.14. Mart-level Gross Sales Revenue: €24,832,582.53 → €22,684,205.36.
+
+**Severity:** High — affected `Units Sold`, `COGS`, `Gross Profit`/`Margin`, and (via the recalculation bug) Gross Sales Revenue itself.
+
+**Decision:**
+
+* `quantity_capped` now back-solves from `line_total_original` (clamped 1-5) instead of capping the corrupted value; `line_total_clean` trusts `line_total_original` for these rows.
+* The 11 non-clean rows need no new flag — they already surface via `line_total_mismatch_flag = TRUE`.
+* Separate bug fixed in `fact_order_items.sql`: it was selecting raw `quantity` instead of `quantity_capped`.
+* **Follow-up:** `docs/business_rules/BUSINESS_METADATA.md`'s revenue validation table predates this fix and needs re-running.
+
 
