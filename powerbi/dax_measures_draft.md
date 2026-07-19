@@ -21,6 +21,8 @@ For column include/exclude decisions (which fields even make it into the model),
 | Gross Order Value (GOV) | `SUM(fact_order_items[line_total])` | All rows, any status, including Cancelled. "What was ordered" — a demand/funnel number, not a revenue number. New tier, not previously in `BUSINESS_METADATA.md`. |
 | Gross Sales Revenue | `CALCULATE(SUM(fact_order_items[line_total]), fact_order_items[order_status] <> "Cancelled")` | Matches `BUSINESS_METADATA.md`'s **"Gross Sales Revenue"** exactly — same name, same formula. Post-discount (`line_total` already nets out `discount`), excludes only Cancelled. **No `ghost_product_flag` filter** — see correction below. |
 | Net Revenue | `[Gross Sales Revenue] - [Refund Revenue]` | = `BUSINESS_METADATA.md`'s **"Cash-Based Net Revenue."** The main financial KPI — the number that should reconcile with `fact_payments`. |
+
+
 | Cancelled Revenue | `CALCULATE(SUM(fact_order_items[line_total]), fact_order_items[order_status] = "Cancelled")` | Not a deduction from anything above — it was never in Recognized/Net Revenue to begin with. Shown as a % of GOV (below) to track cancellation impact. |
 | Cancelled Rate | `DIVIDE([Cancelled Revenue], [Gross Order Value (GOV)])` | New — the "% of GOV" framing from the proposed framework. |
 | Returned Order Value | `CALCULATE(SUM(fact_order_items[line_total]), fact_order_items[order_status] = "Returned")` | Operational-only, kept from the previous draft per `BUSINESS_METADATA.md`'s explicit ask to track "Order Status Impact" separately (§6, "Treatment of Order Statuses"). **Not** a revenue deduction — compare against `Refund Revenue` to see the partial-refund gap. |
@@ -29,24 +31,21 @@ For column include/exclude decisions (which fields even make it into the model),
 | List Value (Pre-Discount) | `CALCULATE(SUMX(fact_order_items, fact_order_items[quantity] * fact_order_items[unit_price]), fact_order_items[order_status] <> "Cancelled")` | Support measure for Discount Impact below. Filtered to non-Cancelled to match Gross Sales Revenue's population. |
 | Discount Impact | `[List Value (Pre-Discount)] - [Gross Sales Revenue]` | List value minus actual (line_total) — margin given away via `discount`. |
 | Discount Rate % | `DIVIDE([Discount Impact], [List Value (Pre-Discount)])` | Slice by `sales_channel` to see which channel discounts hardest — both columns are denormalized directly on the fact table, no join needed. |
+
 | Placed Orders | `DISTINCTCOUNT(fact_order_items[order_id])` | All orders regardless of status — total demand. |
 | Completed Orders | `CALCULATE(DISTINCTCOUNT(fact_order_items[order_id]), fact_order_items[order_status] <> "Cancelled")` | **Use this as the AOV denominator**, not Placed Orders — must match the population Gross Sales Revenue is summed over. |
 | Cancelled Orders | `CALCULATE(DISTINCTCOUNT(fact_order_items[order_id]), fact_order_items[order_status] = "Cancelled")` | |
+
 | Gross AOV | `DIVIDE([Gross Sales Revenue], [Completed Orders])` | Average basket value before refunds. |
 | Net AOV | `DIVIDE([Net Revenue], [Completed Orders])` | Average realized order value after refunds. Label both AOV variants clearly on any visual. |
+
 | Gross Units Sold | `CALCULATE(SUM(fact_order_items[quantity]), fact_order_items[order_status] <> "Cancelled")` | "Net Units Sold" (minus returned quantity) isn't calculable — `fact_returns` has no quantity column, only `refund_amount`. |
+
 | COGS | `CALCULATE(SUMX(fact_order_items, fact_order_items[quantity] * RELATED(dim_product[unit_cost])), fact_order_items[order_status] <> "Cancelled", fact_order_items[ghost_product_flag] = FALSE)` | Cost of Goods Sold — feeds Gross Profit/Margin. Ghost rows excluded **structurally**: they map to `product_key = -1`, no real `unit_cost` exists. Uses `unit_cost`, never `list_price` (~zero correlation with unit_price — see modelling decisions doc). |
 | Gross Profit | `[Net Revenue] - [COGS]` | Net revenue minus cost, not GOV/Gross-Merchandise-Revenue minus cost. |
 | Gross Margin % | `DIVIDE([Gross Profit], [Net Revenue])` | Profit ÷ **net** revenue, not gross — gross as denominator would inflate the margin %. |
 | Revenue by Channel / Shipping Method | *(no dedicated measure)* | Slice GOV / Gross Sales Revenue / Net Revenue by `sales_channel` and `shipping_method` — both denormalized directly onto `fact_order_items`, cheap slicers with no joins needed. |
 
-**Correction (2026-07-18, part 1 — ghost flag):** earlier draft excluded `ghost_product_flag = TRUE` from every "clean" measure, copying the comment in `fact_order_items.sql` without checking whether it actually applies to top-line revenue. Checked live: only 452/75,473 rows (0.62% of revenue, €166,116) are ghost-flagged in order items, and the monetary amounts on those rows are real transaction data (`quantity`/`unit_price` come from the raw order line, not from the product master) — only the product *reference* is broken. Ghost exclusion is now scoped to COGS/margin only, where it's structurally necessary (no `unit_cost` available).
-
-**Correction (2026-07-18, part 2 — cancelled/returned/refunded):** the first draft of this table didn't filter `order_status` at all. Rewritten to match the project's validated rule.
-
-**Correction (2026-07-18, part 3 — adopted GOV/tiered framework):** replaced the flat measure list with the tiered GOV → Gross Sales Revenue → Net Revenue structure above, after fixing the proposed framework's "recognized revenue" filter (see box above) to avoid reintroducing the rejected Method A over-deduction.
-
-`zero_unit_price_flag` rows left in for now — they contribute €0 to revenue but inflate `Gross Units Sold`. Open question: add a "Units Sold (excl. zero-price)" variant if unit counts feed a per-unit metric.
 
 ## Returns — `fact_returns`
 
@@ -55,9 +54,7 @@ For column include/exclude decisions (which fields even make it into the model),
 | Refund Revenue | `SUM(fact_returns[refund_amount])` | Referenced directly by `Net Revenue` and `Return Rate` in the Sales section above — no separate alias measure. No flag filters — see decision below. |
 | Return Count | `CALCULATE(COUNTROWS(fact_returns), fact_returns[ghost_order_flag] = FALSE)` | Operational event count — kept the `ghost_order_flag` exclusion here even though the € measure above doesn't. See decision below for why. |
 
-**Correction (2026-07-18):** `Refund Revenue` originally excluded `ghost_product_flag = TRUE` rows. Checked live: **1,835 of 6,097 return rows (30.1% of refund €, €275,568) are ghost-product-flagged** — far larger than the same flag's impact on order revenue (0.62%). Same reasoning as Gross Revenue applies: `refund_amount` is a real recorded value, only the product reference is broken, so it belongs in the total. Excluding it would have silently understated total refunds by nearly a third.
 
-**Decision (2026-07-18) — `ghost_order_flag` on returns:** originally left excluded pending a decision. Resolved: include it in `Refund Revenue` too. This is a revenue-level (€) measure, and `refund_amount` is a real recorded value whether or not the originating order can be traced — same logic as `ghost_product_flag`. Impact is small either way (60 rows, €4,443, 0.49% of refund €). `Return Count` keeps the exclusion, since "how many verifiable return events happened" (an operational count) is a different question from "how much money was refunded" (a revenue total) — it's still reasonable to want return *events* traceable to a real order even when the refunded amount itself isn't in question.
 
 **Open modeling gap:** an order-count-based return rate ("% of orders that had a return") needs `fact_returns[order_id]` joined to `fact_order_items[order_id]`, but there's no dimension bridging the two fact tables — `dim_order` was excluded from the model. Two options, not yet decided:
 1. Use `Return Rate` (defined in the Sales section above) — no cross-fact join needed, €-weighted (probably the better metric anyway).
