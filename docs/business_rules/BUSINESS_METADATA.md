@@ -27,7 +27,7 @@ The dataset covers 10 European markets:
 | Norway | NO |
 | Poland | PL |
 
-The dataset spans January 2021 to June 2024 and contains approximately 166,000 rows with intentional data quality issues for cleaning and analysis practice.
+The dataset spans January 2021 to June 2024 and contains approximately 166,000 rows with intentional data quality issues for cleaning and analysis practice. See §6 "Date Range Integrity" for a documented exception: a small share of payment, return, and marketing dates fall outside this window.
 
 The dataset represents typical retail processes:
 
@@ -328,6 +328,8 @@ Gross profit:           €55
 Gross margin:           55%
 ```
 
+**Limitation — ghost-product revenue inflates margin.** *Checked 2026-07-20.* `ghost_product_flag` rows (`product_key = -1`, no match in `dim_product`) have `unit_cost = NULL`, so they contribute revenue but €0 cost to this calculation. Checked live: these rows are **0.61% of Gross Sales Revenue** (€138,216 of €22,684,205 across 425 of 70,235 non-cancelled item lines). That revenue is effectively treated as 100% margin, which mildly overstates blended Gross Margin % — roughly 0.6 percentage points on the current data. Small today, but not zero, and it grows if the ghost-product share of the data grows. Do not "fix" by imputing a cost for `product_key = -1` — that would fabricate a number the source data doesn't support. If margin precision becomes important, exclude ghost-product revenue from the Gross Margin numerator and denominator consistently, or report the ghost-product share alongside the margin figure so readers can judge materiality themselves.
+
 ---
 
 ## Net Margin
@@ -603,6 +605,26 @@ Important note: both shares must be €-based (`SUM(payment_amount)`), not trans
 
 ---
 
+## Date Range Integrity — `dim_date` vs. fact table dates
+
+*Added: 2026-07-28*
+
+`mart.dim_date` is a fixed calendar spine matching the dataset's designed generation window — **2021-01-01 to 2024-06-30** (`scripts/generate_retail_dataset.py`, `START_DATE`/`END_DATE`), not dynamically derived from fact table MIN/MAX dates. `fact_order_items`, the grain-defining fact table, matches this window exactly: 0 rows fall outside it.
+
+The other three fact tables have a small number of rows dated outside this window, for two different reasons — confirmed by reading the generation script, not assumed:
+
+| Fact table | Rows outside window | % of table | Root cause |
+|---|---|---|---|
+| `fact_payments` | 44 | 0.14% | Natural lag: `payment_date = order_date + 0–3 days`. An order placed near June 30 can have its payment land a few days later. Not a defect. |
+| `fact_returns` | 81 | 1.3% | Natural lag: `return_date = order_date + 1–30 days`. Same mechanism, wider window. Not a defect. |
+| `fact_marketing_touchpoints` | 853 | 7.1% | **Confirmed generation script defect.** `campaign_date` for campaigns named `*_2024` is generated as `rand_date(2024-01-01, 2024-12-31)` — it never references the global `END_DATE`, unlike every other date field in the script. |
+
+Business impact: rows outside the window will not find a matching `dim_date` row on `date_key`. No measure currently defined in `powerbi/dax_measures_draft.md` depends on joining `fact_payments`, `fact_returns`, or `fact_marketing_touchpoints` to `dim_date` for a date-based calculation — `Refund Revenue`, `Return Count`, and `Return Rate` all aggregate `fact_returns` directly, without a `dim_date` join. So there is no active reporting break today.
+
+Decision: do not regenerate the dataset to fix the `campaign_date` defect — that would invalidate every validated number already documented in this project for a low-materiality issue. Keep `dim_date` fixed to the intended window. If a future measure needs a date-based join to `fact_marketing_touchpoints` (e.g. a marketing time-intelligence trend), it must explicitly exclude or separately bucket touchpoints dated after 2024-06-30 rather than assuming a clean join to `dim_date`.
+
+---
+
 ## 7. Business Rules
 
 | Rule                                                         | Explanation                                                  |
@@ -651,6 +673,7 @@ This supports traceability and prevents silent data loss.
 | `product_key = -1`  | Product could not be matched           | Keep for total revenue analysis if price is valid, exclude from product ranking and category analysis |
 | `store_key = -1`    | Store could not be matched             | Keep for overall sales, exclude from store-level analysis                 |
 | Missing date        | Transaction date is unknown or invalid | Exclude from time series analysis                                         |
+| Date outside `dim_date` window (2021-01-01–2024-06-30) | Payment/return trailing lag (immaterial) or marketing `campaign_date` generation defect (7.1% of touchpoints) — see "Date Range Integrity" in §6 | Keep row for non-date-based totals; will not join to `dim_date` for date-based analysis until explicitly bucketed |
 
 ---
 
@@ -739,3 +762,5 @@ Dashboard users should be aware that:
 | 2026-07-06 | Added Net Margin definition; documented as not calculable in this project since only product cost (`unit_cost`) exists and no operating expense, marketing, shipping, or overhead data is available |
 | 2026-07-06 | Checked `list_price` vs `unit_price` for a VAT-sized gap to resolve VAT treatment; found near-zero correlation (r ≈ -0.001) instead — documented that the two fields are statistically independent, so list_price-based margin is a catalog estimate, not realized transaction margin |
 | 2026-07-08 | Added Unpaid Payment Risk Gap definition; must compare €-based shares on both sides, not count vs €, to avoid a units-mismatch false positive |
+| 2026-07-20 | Added Gross Margin limitation: ghost-product revenue (0.61% of Gross Sales Revenue, 425 rows) carries €0 cost and inflates blended Gross Margin % by ~0.6pp — quantified live, not fixed via cost imputation |
+| 2026-07-28 | Fixed `dim_date` to a static 2021-01-01–2024-06-30 spine (was dynamically derived from fact MIN/MAX dates, which silently inflated it to 2024-12-31 via marketing campaign dates and broke Power BI's `SAMEPERIODLASTYEAR`-based YoY measure). Added "Date Range Integrity" section documenting the 44 payment / 81 return (lag, immaterial) / 853 marketing (confirmed generation script defect) rows now outside the window |

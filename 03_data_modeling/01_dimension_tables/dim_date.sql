@@ -1,4 +1,7 @@
--- Generated as a calendar table from stg_orders date range — not sourced from a raw table.
+-- Generated as a fixed calendar spine matching the dataset's designed generation window
+-- (scripts/generate_retail_dataset.py START_DATE/END_DATE = 2021-01-01 to 2024-06-30),
+-- not derived from MIN/MAX fact dates — those drift outside the intended window
+-- (see docs/business_rules/ note on out-of-window fact rows).
 CREATE SCHEMA IF NOT EXISTS mart;
 
 DROP TABLE IF EXISTS mart.dim_date CASCADE;
@@ -26,7 +29,11 @@ CREATE TABLE mart.dim_date (
     is_weekend BOOLEAN
 );
 -- Insert one row per calendar date into dim_date.
--- The date range is based on the minimum and maximum order date in the staging order table.
+-- Date range is fixed to the dataset's designed generation window (2021-01-01 to 2024-06-30).
+-- fact_payments (44 rows), fact_returns (81 rows), and fact_marketing_touchpoints (853 rows)
+-- have dates that fall outside this window in the generated data — those rows will not
+-- find a matching dim_date row on date_key. Documented as a known data quality finding,
+-- not silently dropped; see docs/business_rules/ for how those rows should be treated.
 
 INSERT INTO mart.dim_date (
     date_key,
@@ -42,30 +49,15 @@ INSERT INTO mart.dim_date (
     is_weekend
 )
 
-WITH date_range AS (
-    -- Union all date columns across every fact source so dim_date covers the full range
-    -- needed for FK joins in fact_order_items, fact_payments, fact_returns, and fact_marketing_touchpoints.
-    SELECT MIN(dt) AS min_date, MAX(dt) AS max_date
-    FROM (
-        SELECT order_date    AS dt FROM stg.stg_orders             WHERE order_date    IS NOT NULL
-        UNION ALL
-        SELECT payment_date  AS dt FROM stg.stg_payments           WHERE payment_date  IS NOT NULL
-        UNION ALL
-        SELECT return_date   AS dt FROM stg.stg_returns            WHERE return_date   IS NOT NULL
-        UNION ALL
-        SELECT campaign_date AS dt FROM stg.stg_marketing_campaigns WHERE campaign_date IS NOT NULL
-    ) all_dates
-),
-
-calendar_dates AS (
-    -- GENERATE_SERIES ensures every calendar date is present even if no order occurred that day.
+WITH calendar_dates AS (
+    -- Fixed spine matching generate_retail_dataset.py's START_DATE/END_DATE constants,
+    -- not the MIN/MAX of fact table dates.
     SELECT
         GENERATE_SERIES(
-            min_date,
-            max_date,
+            DATE '2021-01-01',
+            DATE '2024-06-30',
             INTERVAL '1 day'
         )::DATE AS full_date
-    FROM date_range
 )
 
 SELECT

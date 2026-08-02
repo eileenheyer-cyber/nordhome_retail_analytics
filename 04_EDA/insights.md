@@ -70,6 +70,22 @@ This documents the exploratory data analysis behind NordHome Retail's dataset (`
 
 ---
 
+### Q5: How are order values distributed, and do a small number of extreme orders inflate the average order value (AOV)?
+
+**Insight:** Order values are right-skewed: the median order is €658.44 while the mean (AOV) is €786.69 — a 19.5% gap. Using an IQR-based threshold (Q3 + 1.5×IQR = €2,304.75), 717 orders (2.5% of 28,835) qualify as statistical outliers, reaching as high as €5,382.89. Removing them only shifts AOV from €786.69 to €737.34 — a 6.3% change.
+
+**Chart:** ![Order value distribution with outlier threshold](figures/order_value_distribution.png)
+
+**Decision:** Extreme order values are **not excluded** from AOV or other order-value calculations. The impact of removing them is too small (6.3%) to justify treating them as data-quality problems rather than legitimate rows in the distribution.
+
+**Business interpretation:** A 6% shift after removing the top 2.5% of orders means the right-skew is broad and gradual, not caused by a handful of freak transactions — consistent with the dataset-wide pattern already noted in [Limitations](#limitations): `unit_price` is capped flat at €250.00 and quantity averages exactly 3.00, the midpoint of a 1–5 range. That same generation pattern is the more likely driver of both the overall AOV level and this right-skewed shape, not organic large-basket purchasing behavior. The decision to keep these orders in the AOV calculation is still correct — they're a real, structural part of how this dataset was generated, not a cleaning problem — but neither the AOV level nor the skew should be read as evidence of genuine customer purchasing patterns.
+
+**Limitation:** This IQR check only establishes that outliers aren't statistically distorting AOV — it doesn't establish that the distribution itself is realistic. As already flagged in this document's Limitations section, AOV here should not be benchmarked against real-world retail or used to infer a different business model for NordHome.
+
+**Further investigation:** Check whether large orders cluster by country, channel, or loyalty status — if they're as evenly spread as most other dimensions in this dataset, that would further support the generation-artifact explanation over a genuine customer-behavior signal.
+
+---
+
 ## 2. Customers
 
 ### Q1: How are NordHome's customers distributed across markets and countries?
