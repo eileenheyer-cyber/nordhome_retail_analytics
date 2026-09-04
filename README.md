@@ -7,14 +7,18 @@
 - [Business Context](#business-context)
 - [Project Goals](#project-goals)
 
-**Technical**
+**Technical Stack**
+- [Technical Stack Architecture](#technical-stack-architecture)
+- [Project Structure](#project-structure)
+
+**Data Pipeline**
 - [Data & Dataset](#data--dataset)
 - [Data Pipeline & Architecture](#data-pipeline--architecture)
 - [Data Cleaning & Quality](#data-cleaning--quality)
 - [Data Modelling](#data-modelling)
+
+**Exploratory Data Analysis**
 - [Exploratory Data Analysis](#exploratory-data-analysis)
-- [Technical Stack Architecture](#technical-stack-architecture)
-- [Project Structure](#project-structure)
 
 **Power BI Dashboard & Analysis**
 - [Power BI Dashboard](#power-bi-dashboard)
@@ -78,6 +82,126 @@ This is both a technical portfolio piece and a learning project. The goals were 
 4. Turn exploratory analysis into business questions, findings, and recommendations — not a folder of unexplained charts.
 5. Ship a real, published Power BI dashboard built on that model, not a mockup.
 6. Keep every non-obvious decision (a metric definition, a column exclusion, a data quality call) visible and documented, so the reasoning survives even after the numbers change.
+
+---
+
+## Technical Stack Architecture
+
+```
+┌────────────────────────────────────────┐
+│             PostgreSQL 15              │
+│      Raw → Staging → Mart layers       │
+│       and analytical data model        │
+└────────────────────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐
+│                 Python                 │
+│         Dataset generation and         │
+│          exploratory analysis          │
+└────────────────────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐
+│             Pandas / NumPy             │
+│   Data manipulation and preparation    │
+└────────────────────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐
+│               Matplotlib               │
+│       Exploratory visualisation        │
+└────────────────────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐
+│            Jupyter Notebook            │
+│       Exploratory data analysis        │
+└────────────────────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐     ┌─────────────────────────┐
+│            Power BI Desktop            │     │           DAX           │
+│     Semantic model, DAX measures,      │ ──► │   KPI definitions and   │
+│       and dashboard development        │     │ analytical calculations │
+└────────────────────────────────────────┘     └─────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐
+│            Power BI Service            │
+│          Dashboard publishing          │
+└────────────────────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐
+│              Git / GitHub              │
+│            Version control             │
+└────────────────────────────────────────┘
+                     ↓
+┌────────────────────────────────────────┐
+│               AI / LLMs                │
+│ Custom skills, development assistance, │
+│  visual ideation and iterative design  │
+└────────────────────────────────────────┘
+```
+
+**Claude Code** was used throughout to optimize the workflow — automating repetitive SQL/documentation patterns via custom project skills and slash commands (`.claude/skills/`, `.claude/commands/`), reviewing code and catching data-quality bugs, and speeding up iteration on chart styling, README structure, and cross-file consistency checks. See [Disclaimer](#disclaimer) for the full scope of AI involvement.
+
+---
+
+## Project Structure
+
+```
+nordhome_retail_analytics/
+├── 01_data_preparation/
+│   ├── create_raw_tables.sql          ← raw schema DDL
+│   ├── data_quality_checks.sql        ← initial profiling queries
+│   ├── data_quality_findings.md       ← findings from raw data inspection
+│   └── data_cleaning_decisions.md     ← documented cleaning decisions
+│
+├── 02_data_cleaning_transformation/
+│   ├── stg_customer.sql
+│   ├── stg_orders.sql
+│   ├── stg_order_items.sql
+│   ├── stg_payment.sql
+│   ├── stg_product.sql
+│   ├── stg_returns.sql
+│   ├── stg_marketing_campaigns.sql
+│   └── data_validation.md             ← validation checks and results
+│
+├── 03_data_modeling/
+│   ├── 01_dimension_tables/           ← dim_customer, dim_product, dim_date, etc.
+│   ├── 02_fact_tables/                ← fact_order_items, fact_payments, etc.
+│   ├── model_documentation.md         ← full schema design decisions
+│   └── model_validation.md            ← row counts and integrity checks
+│
+├── 04_EDA/                            ← completed: Revenue, Customers, Products,
+│   │                                     Payments, Returns, Marketing
+│   ├── nordhome_eda.ipynb
+│   ├── base_style.py                  ← shared chart style
+│   ├── figures/                       ← 25 exported charts
+│   └── insights.md
+│
+├── powerbi/
+│   ├── export_mart_to_csv.sql         ← mart → CSV export (boolean-safe casts)
+│   ├── mart_export/                   ← exported CSVs (not committed)
+│   ├── dax_measures.md                ← current DAX measure reference
+│   ├── decisions_log.md               ← current modelling/design decisions
+│   └── archive/                       ← superseded drafts, kept as history
+│       ├── power_bi_modelling_decisions.md
+│       └── dashboard_design.md
+│
+├── data/
+│   ├── raw/                           ← generated CSVs (not committed)
+│   └── cleaned/                       ← cleaned exports (not committed)
+│
+├── docs/
+│   ├── DATA_DICTIONARY.md
+│   ├── DATA_PIPELINE.md
+│   ├── MART_SCHEMA_REFERENCE.md
+│   └── business_rules/
+│       ├── BUSINESS_METADATA.md
+│       └── revenue_deduction_logic.md
+│
+├── scripts/
+│   └── generate_retail_dataset.py     ← synthetic dataset generator
+│
+└── validation/
+    └── data_quality_issues.md
+```
 
 ---
 
@@ -392,124 +516,6 @@ This would surface actionable groups such as Champions, Loyal Customers, New Cus
 
 ---
 
-## Technical Stack Architecture
-
-```
-┌────────────────────────────────────────┐
-│             PostgreSQL 15              │
-│      Raw → Staging → Mart layers       │
-│       and analytical data model        │
-└────────────────────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐
-│                 Python                 │
-│         Dataset generation and         │
-│          exploratory analysis          │
-└────────────────────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐
-│             Pandas / NumPy             │
-│   Data manipulation and preparation    │
-└────────────────────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐
-│               Matplotlib               │
-│       Exploratory visualisation        │
-└────────────────────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐
-│            Jupyter Notebook            │
-│       Exploratory data analysis        │
-└────────────────────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐     ┌─────────────────────────┐
-│            Power BI Desktop            │     │           DAX           │
-│     Semantic model, DAX measures,      │ ──► │   KPI definitions and   │
-│       and dashboard development        │     │ analytical calculations │
-└────────────────────────────────────────┘     └─────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐
-│            Power BI Service            │
-│          Dashboard publishing          │
-└────────────────────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐
-│              Git / GitHub              │
-│            Version control             │
-└────────────────────────────────────────┘
-                     ↓
-┌────────────────────────────────────────┐
-│               AI / LLMs                │
-│ Custom skills, development assistance, │
-│  visual ideation and iterative design  │
-└────────────────────────────────────────┘
-```
-
----
-
-## Project Structure
-
-```
-nordhome_retail_analytics/
-├── 01_data_preparation/
-│   ├── create_raw_tables.sql          ← raw schema DDL
-│   ├── data_quality_checks.sql        ← initial profiling queries
-│   ├── data_quality_findings.md       ← findings from raw data inspection
-│   └── data_cleaning_decisions.md     ← documented cleaning decisions
-│
-├── 02_data_cleaning_transformation/
-│   ├── stg_customer.sql
-│   ├── stg_orders.sql
-│   ├── stg_order_items.sql
-│   ├── stg_payment.sql
-│   ├── stg_product.sql
-│   ├── stg_returns.sql
-│   ├── stg_marketing_campaigns.sql
-│   └── data_validation.md             ← validation checks and results
-│
-├── 03_data_modeling/
-│   ├── 01_dimension_tables/           ← dim_customer, dim_product, dim_date, etc.
-│   ├── 02_fact_tables/                ← fact_order_items, fact_payments, etc.
-│   ├── model_documentation.md         ← full schema design decisions
-│   └── model_validation.md            ← row counts and integrity checks
-│
-├── 04_EDA/                            ← completed: Revenue, Customers, Products,
-│   │                                     Payments, Returns, Marketing
-│   ├── nordhome_eda.ipynb
-│   ├── base_style.py                  ← shared chart style
-│   ├── figures/                       ← 25 exported charts
-│   └── insights.md
-│
-├── powerbi/
-│   ├── export_mart_to_csv.sql         ← mart → CSV export (boolean-safe casts)
-│   ├── mart_export/                   ← exported CSVs (not committed)
-│   ├── dax_measures.md                ← current DAX measure reference
-│   ├── decisions_log.md               ← current modelling/design decisions
-│   └── archive/                       ← superseded drafts, kept as history
-│       ├── power_bi_modelling_decisions.md
-│       └── dashboard_design.md
-│
-├── data/
-│   ├── raw/                           ← generated CSVs (not committed)
-│   └── cleaned/                       ← cleaned exports (not committed)
-│
-├── docs/
-│   ├── DATA_DICTIONARY.md
-│   ├── DATA_PIPELINE.md
-│   ├── MART_SCHEMA_REFERENCE.md
-│   └── business_rules/
-│       ├── BUSINESS_METADATA.md
-│       └── revenue_deduction_logic.md
-│
-├── scripts/
-│   └── generate_retail_dataset.py     ← synthetic dataset generator
-│
-└── validation/
-    └── data_quality_issues.md
-```
-
----
-
 ## Challenges & Decisions
 
 A few problems didn't show up until well after the initial cleaning pass — surfaced by questioning a number that looked wrong, not by a pre-built check:
@@ -533,6 +539,7 @@ A few problems didn't show up until well after the initial cleaning pass — sur
 - Documenting the *why*, not just the *what*, is what makes a project auditable later — including this README rewrite itself, which exists because the original version had drifted from what the project had actually become.
 - Knowing when *not* to ship a measure or a chart is a separate skill from being able to build one. The Pareto measures and the loyalty-split visual were both built correctly and both discarded — a correct number that reveals no real pattern is still clutter, and worse, an invitation for someone to explain noise as if it were a finding.
 - Measures that will ever appear in the same visual, or ever be summed, have to be designed as a set from the start. Three loss-rate measures were each individually correct when written, and still produced an inverted, executive-facing ranking once placed side by side — because each was built against a different denominator at a different time.
+- Context engineering (curating what an AI assistant can see — `CLAUDE.md`, `.claude/skills/`, structured reference docs like `decisions_log.md`) only pays off if that context stays accurate. This project hit that failure mode twice: stale file paths after renaming `powerbi/` to `05_Power BI/`, and `DATA_DICTIONARY.md` pointing at a `DATA_QUALITY_ISSUES.md` that doesn't exist. Confidently wrong context is worse than no context at all — it has to be maintained like code, not written once and trusted.
 
 ---
 
