@@ -8,6 +8,9 @@ data/cleaned/
 # macOS
 .DS_Store
 
+# Matplotlib font cache
+.matplotlib-cache/
+
 # Python
 __pycache__/
 *.pyc
@@ -15,6 +18,7 @@ __pycache__/
 
 # Personal project log
 project_log.md
+h1_2024_dashboard_investigation_log.md
 
 # Power BI export (large CSVs, generated from mart tables)
-powerbi/mart_export/
+05_Power BI/mart_export/

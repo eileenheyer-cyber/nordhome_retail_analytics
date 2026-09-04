@@ -1,6 +1,8 @@
 # Power BI Dashboard Design — NordHome Retail
 
-Status: **draft, in progress.** Started 2026-08-02. Built page by page.
+> ⚠️ **Superseded.** This was the original design draft (started 2026-08-02). The dashboard was later rebuilt as a PBIP project (25 tables, 143 measures) with materially different denominators, page content, and measure logic. **[dax_measures.md](../dax_measures.md)** and **[decisions_log.md](../decisions_log.md)** are the current source of truth — kept here only as historical design reasoning, not a changelog of what was actually built.
+
+Status: **built and published.** Started 2026-08-02, design phase. The dashboard has since been built in Power BI Desktop and published (page names and several measures diverged from this draft during the build; this file is kept as the original design reasoning, not a changelog).
 
 This file is the standalone design reference for the Power BI report — business questions, DAX measures, and layout for every page.
 
@@ -14,40 +16,7 @@ One report, four pages, one shared design system. This file records, per page:
 2. The DAX measures it needs
 3. A layout suggestion
 
-Plus report-level conventions that apply across all pages, so pages don't quietly drift apart from each other.
-
----
-
-## Global design standards
-
-Applies to every page unless a page explicitly overrides it.
-
-**KPI cards**
-- Size: ~190–210px wide × 100–120px tall, landscape not square
-- Callout (big number) font: 28–36pt, filling ~60–70% of card height
-- Label font: 10–12pt
-- Delta/comparison font: 9–10pt, smaller than the label
-
-**Color**
-- Accent color: orange `#F2632D`, used only for the metric being highlighted on a given chart — never repurposed as "just another category color"
-- Same accent meaning across every page: orange = the thing the viewer's eye should land on first
-
-**Typography**
-- Page title: 24pt bold (matches `CLAUDE.md` chart title convention)
-- Page subtitle stating that page's Big Idea: 13–14pt
-- KPI card numbers may exceed the page title size (they're the single most important number on the card) but card labels stay below subtitle size
-
-**Number formatting**
-- Currency abbreviated (€22.7M, not €22,684,205) — matches "no unnecessary precision" rule
-- Consistent decimal precision for comparable metrics across all pages (e.g. all % metrics to 1 decimal)
-
-**Filters**
-- Default date filter: Jan–Jun comparable, applied consistently across pages, stated visibly on each page (not just Executive Overview) since 2024 is a half-year only in `dim_date`
-- **Exception:** the Returns & Revenue Risk page's central chart (Returned/Refunded Order Value vs. Refund Revenue) uses the full 2021–2024 range, not the Jan–Jun comparable filter — the underlying €4.63M/€914K finding was validated full-dataset. State this explicitly in that chart's subtitle so it's never assumed to match the Jan–Jun default.
-- Product/category-level visuals must exclude `ghost_product_flag = TRUE` — ghost rows (`product_key = -1`) have no reliable attributes and will distort rankings
-
-**Navigation**
-- Same page-tab style and position across all four pages
+Plus report-level conventions that apply across all pages, so pages don't quietly drift apart from each other
 
 ---
 
@@ -162,6 +131,49 @@ Gross Profit = [Net Revenue] - [COGS]
 - Toggle or shaded projection on the *same* trend chart, not a separate visual — this is an extension of "where are we trending," not a new topic.
 
 **Limitation — footnote on the chart, not skipped:** only 42 months of history, and it's synthetic, generated data. Power BI's forecast (exponential smoothing) will detect *some* seasonal pattern whether or not a real one exists. Present as an illustrative projection, not a confident business forecast.
+
+**Margin Leakage Waterfall — supplementary chart (added 2026-08-09)**
+
+Not one of the six KPI cards — a separate chart answering sub-question 5 ("are we profitable after cost") with a decomposition instead of one static %. Walks from theoretical list-price margin down to what was actually realized, through the three erosive drivers: cancellation, discounting, refunds.
+
+```dax
+-- Start bar: full population at full list price, reliable products only on the cost side
+List Value (All Orders) =
+SUMX(fact_order_items, fact_order_items[quantity] * fact_order_items[unit_price])
+
+COGS (List Basis) =
+CALCULATE(
+    SUMX(fact_order_items, fact_order_items[quantity] * RELATED(dim_product[unit_cost])),
+    fact_order_items[ghost_product_flag] = FALSE
+)
+
+List-Price Margin = [List Value (All Orders)] - [COGS (List Basis)]
+
+-- Driver 1: Cancellation — opportunity margin lost, no cost was ever incurred.
+-- Uses full list price (unit_price), not line_total — unlike "Cancelled" in the GOV waterfall,
+-- this ignores any discount recorded on the cancelled order, to match the List-Price Margin start bar.
+Cancelled Margin Impact =
+CALCULATE(
+    SUMX(fact_order_items, fact_order_items[quantity] * (fact_order_items[unit_price] - RELATED(dim_product[unit_cost]))),
+    fact_order_items[order_status] = "Cancelled",
+    fact_order_items[ghost_product_flag] = FALSE
+)
+
+-- Driver 2: Discounting — pure margin erosion, cost unaffected (reuses Sales & Product Performance measures)
+Discount Impact = [List Value (Pre-Discount)] - [Gross Sales Revenue]
+
+-- Driver 3: Refunds — pure margin erosion, cost already sunk (reuses measure defined above)
+Refund Revenue = SUM(fact_returns[refund_amount])
+
+-- End bar
+Gross Profit = [Net Revenue] - [COGS]
+```
+
+Waterfall order: `List-Price Margin` → `− Cancelled Margin Impact` → `− Discount Impact` → `− Refund Revenue` → `= Gross Profit`.
+
+**Validated 2026-08-09, H1 2024 filter:** List-Price Margin 2,094,652 → Cancelled −141,502 → Discount −573,937 → Refund −128,949 → chained result 1,250,263, vs. `Gross Profit` computed directly at 1,249,554 — a €710 (0.06%) gap from the same ghost-product cost distortion already documented above (`unit_cost = 0` for unidentifiable products), not a new issue. Immaterial; footnote on the chart rather than a blocking concern.
+
+**Do not** add a separate COGS bar to this waterfall — it's already netted into the `List-Price Margin` start bar, so a second COGS deduction would double-count, same trap flagged earlier for Returned Order Value in the revenue waterfall.
 
 ### Layout
 

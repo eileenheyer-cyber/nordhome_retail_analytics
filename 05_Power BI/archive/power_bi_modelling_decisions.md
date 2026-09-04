@@ -1,5 +1,7 @@
 # Power BI Modelling Decisions
 
+> ⚠️ **Superseded.** These decisions were made against an earlier, 10-table version of the Power BI model. The dashboard was later rebuilt as a PBIP project (25 tables, 16 relationships, 143 measures) with a different column/table set. **[decisions_log.md](../decisions_log.md)** is the current source of truth for modelling decisions — kept here only as a historical record.
+
 This file documents decisions made specifically while loading the `mart` tables into Power BI. These are Power BI-model-only decisions — the underlying Postgres `mart` schema is unaffected unless explicitly stated.
 
 For the source star schema design, see `03_data_modeling/model_documentation.md`. For column-level type reference, see `docs/MART_SCHEMA_REFERENCE.md`.
