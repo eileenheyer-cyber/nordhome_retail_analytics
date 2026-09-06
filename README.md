@@ -42,7 +42,7 @@
 
 NordHome is a fictional pan-European online retailer. This project takes intentionally dirty synthetic data, cleans and models it in PostgreSQL, and delivers a star schema data mart, exploratory analysis, and a published Power BI dashboard — a full analytics engineering workflow from raw CSV to executive reporting.
 
-**[📊 Open the live Power BI dashboard](https://app.powerbi.com/groups/me/reports/e5b8e635-5c4e-4888-a939-50db0365be11/fd1e95099d4818b90f29?experience=power-bi)**
+**[📊 See the Power BI Dashboard](#power-bi-dashboard)** — screenshots of all four pages, since the report itself isn't published to the public web (see that section for why).
 
 See [Disclaimer](#disclaimer) before treating any number in this repo as a single source of truth.
 
@@ -175,7 +175,7 @@ nordhome_retail_analytics/
 │   ├── figures/                       ← 25 exported charts
 │   └── insights.md
 │
-├── powerbi/
+├── 05_Power BI/
 │   ├── export_mart_to_csv.sql         ← mart → CSV export (boolean-safe casts)
 │   ├── mart_export/                   ← exported CSVs (not committed)
 │   ├── dax_measures.md                ← current DAX measure reference
@@ -244,7 +244,7 @@ validation/                          ← automated SQL assertions and quality ch
 04_EDA/                              ← Python EDA — revenue, customers, products,
                                         payments, returns, marketing (insights.md)
          ↓
-powerbi/                             ← mart export, DAX design, modelling decisions
+05_Power BI/                             ← mart export, DAX design, modelling decisions
          ↓
 Power BI Service                     ← published, public dashboard
 ```
@@ -372,15 +372,13 @@ Dedicated deep-dives (RFM segmentation, CLV modelling, sales forecasting) were s
 
 ## Power BI Dashboard
 
-**[Open the live report →](https://app.powerbi.com/groups/me/reports/e5b8e635-5c4e-4888-a939-50db0365be11/fd1e95099d4818b90f29?experience=power-bi)**
+> **Note:** this report isn't published to the public web — the Power BI workspace it lives in doesn't have "Publish to web" enabled, so the report link only works for someone signed into the same organization. The screenshots below are the way to actually see the dashboard.
 
 **Purpose:** evaluate how the business performed in H1 2024 vs. H1 2023, and turn that into concrete recommendations for improving performance in H2. That comparison is the default view, but slicers (Year, Market, Category) let the viewer explore other periods and prior years' performance too.
 
-Four pages, one shared design system. The model is a 25-table, 143-measure PBIP project — a significant rebuild since the original design (`powerbi/archive/dashboard_design.md`, now superseded); the standalone Return & Revenue Risk page was folded into Executive Overview's leakage/discount visuals, and a Marketing Analysis page was added.
+Four pages, one shared design system. The model is a 25-table, 143-measure PBIP project — a significant rebuild since the original design (`05_Power BI/archive/dashboard_design.md`, now superseded); the standalone Return & Revenue Risk page was folded into Executive Overview's leakage/discount visuals, and a Marketing Analysis page was added.
 
 Some fields needed for this report (e.g. Sell-Through Rate's inventory data, Marketing Analysis's CPA/CPC and Pinterest channel) didn't exist in the original dataset and had to be regenerated during report creation — see [Disclaimer](#disclaimer).
-
-> Screenshots below are referenced from `powerbi/screenshots/` — add the four PNGs there (see filenames below) to have them render.
 
 ### 1. Executive Overview
 
@@ -393,7 +391,7 @@ Some fields needed for this report (e.g. Sell-Through Rate's inventory data, Mar
 - Is the YoY change driven by customer count, purchase frequency, or order value?
 - Which categories are dragging down revenue and margin the most?
 
-![Executive Overview](powerbi/screenshots/executive_overview.png)
+![Executive Overview](05_Power%20BI/screenshots/executive_overview.png)
 
 Five KPI cards (Net Revenue, Gross Profit, Gross Margin, Completed Orders, Net AOV) each carry a YoY sparkline. The main trend chart runs the full year, blending actual H1 against last year and an H2 forecast band. Two donuts break down where revenue leaks (cancelled/returned/refunded) and where margin is conceded (discount share by category). A waterfall decomposes the YoY revenue change into customer count, purchase frequency, and order value, and a table ranks categories by revenue and margin movement.
 
@@ -415,7 +413,7 @@ Five KPI cards (Net Revenue, Gross Profit, Gross Margin, Completed Orders, Net A
 - Which subcategories keep the most order value vs. lose it to returns?
 - Which individual products are the strongest revenue performers?
 
-![Sales & Product Performance](powerbi/screenshots/sales_product_performance.png)
+![Sales & Product Performance](05_Power%20BI/screenshots/sales_product_performance.png)
 
 KPI cards cover Sell-Through Rate (with a Watch/Critical/Healthy status callout), Return Rate, 2023 launch-cohort revenue share, discontinued-product revenue exposure, and discount impact. Two bar charts rank markets and categories by revenue; a scatter plot positions every subcategory by margin vs. YoY growth so under- and over-performers are visible at a glance; a kept-vs-lost bar chart shows how much order value each subcategory retains after returns; and a table ranks the top 10 products by revenue and margin.
 
@@ -436,7 +434,7 @@ KPI cards cover Sell-Through Rate (with a Watch/Critical/Healthy status callout)
 - Does loyalty membership actually drive more repeat purchases?
 - Does buying more often make a customer more valuable?
 
-![Customer Analysis](powerbi/screenshots/customer_analysis.png)
+![Customer Analysis](05_Power%20BI/screenshots/customer_analysis.png)
 
 KPI cards cover repeat purchase rate, new customers registered, repeat customers, total customers, and net revenue per customer. A growth-trend chart tracks new vs. churned customers monthly; a retained-vs-churned bar breaks the same story down by market; a loyalty comparison checks whether members repeat-purchase more than non-members; and a combo chart shows revenue per customer rising with order frequency.
 
@@ -456,7 +454,7 @@ KPI cards cover repeat purchase rate, new customers registered, repeat customers
 - Which channels deliver the best ROI and conversion rate for the spend?
 - Do conversions concentrate around specific campaigns or seasons?
 
-![Marketing Analysis](powerbi/screenshots/marketing_analysis.png)
+![Marketing Analysis](05_Power%20BI/screenshots/marketing_analysis.png)
 
 KPI cards cover revenue from converted customers, customers reached, click-through rate, conversion rate, and marketing ROI. A funnel chart shows touchpoints collapsing to clicks and then conversions; a channel table ranks CPA, CPC, ROI, and conversion rate side by side; a time series highlights conversions spiking around named campaigns (Black Friday, Christmas, Valentine's Day, etc.); and a text panel calls out the recommended actions that follow directly from the data.
 
@@ -469,7 +467,7 @@ KPI cards cover revenue from converted customers, customers reached, click-throu
 
 > **Open question:** this page's channel table includes a **Pinterest** channel and cost metrics (CPA, CPC) not present in the documented `fact_marketing_touchpoints` schema or `docs/business_rules/BUSINESS_METADATA.md` — likely part of the data regenerated during dashboard design (see [Disclaimer](#disclaimer)). Worth reconciling back into the source docs if this page is kept long-term.
 
-The **current** measure definitions are in [powerbi/dax_measures.md](powerbi/dax_measures.md), and the reasoning behind every non-obvious modelling and design choice — including two of this project's best data-quality catches, detailed in [Challenges & Decisions](#challenges--decisions) — is in [powerbi/decisions_log.md](powerbi/decisions_log.md). `powerbi/archive/dashboard_design.md` and `powerbi/archive/power_bi_modelling_decisions.md` are earlier drafts, now superseded, kept only as a historical record of how the design evolved.
+The **current** measure definitions are in [05_Power BI/dax_measures.md](05_Power%20BI/dax_measures.md), and the reasoning behind every non-obvious modelling and design choice — including two of this project's best data-quality catches, detailed in [Challenges & Decisions](#challenges--decisions) — is in [05_Power BI/decisions_log.md](05_Power%20BI/decisions_log.md). `05_Power BI/archive/dashboard_design.md` and `05_Power BI/archive/power_bi_modelling_decisions.md` are earlier drafts, now superseded, kept only as a historical record of how the design evolved.
 
 > **Note:** the `.pbix` was built and refreshed in Power BI Desktop outside this repository and published to the Power BI Service (link above) — it isn't committed here; an empty placeholder that used to sit at `dashboards/nordhome_dashboard.pbix` was removed since it held no real content.
 
@@ -525,7 +523,7 @@ A few problems didn't show up until well after the initial cleaning pass — sur
 - **`list_price` and `unit_price` turned out to be statistically independent.** Correlation testing (r ≈ −0.001 across 74,783 matched lines, gaps up to +3,000%) ruled out VAT, discount, or markup as an explanation. Rather than keep `list_price` with a caveat, it was excluded from the Power BI model entirely — the failure mode of misusing it (a margin chart that looks normal but plots noise) was judged worse than losing a narrow, not-currently-needed use case.
 - **Duplicate customer identities: resolve, don't merge or drop.** 148 people (296 rows) had registered twice with the same email under different `customer_id`s, and 91% had placed real orders under both. Deleting rows would have lost real order history; merging would have broken existing foreign keys. Both keys were kept, with a `canonical_customer_key` added so customer-count metrics can de-duplicate without touching the underlying fact data.
 - **`raw_orders.country` looked usable — until it was checked against `dim_customer.country`.** 89.9% of rows mismatched, and the per-customer distinct-country count matched a pure random draw almost exactly, proving the field was assigned randomly at generation time, not real geography. Removed from every fact table.
-- **A mismatched denominator inverted an executive-facing ranking.** Three loss-rate measures (cancelled/returned/refunded % of revenue) had each been written at a different time against a different base — one divided by Net Revenue, one by Gross Sales Revenue. On that mix, refunds looked like the largest driver of lost revenue at €142K. Rebuilt so all three divide by the same base (Gross Order Value) with mutually-exclusive numerators, the true ranking flips: cancellations are the largest driver, refunds the smallest, and the old €142K figure was overstated by ~67%. Full derivation in [powerbi/decisions_log.md](powerbi/decisions_log.md) — kept as the clearest example in this project that a denominator error isn't cosmetic, it can invert the decision an executive makes.
+- **A mismatched denominator inverted an executive-facing ranking.** Three loss-rate measures (cancelled/returned/refunded % of revenue) had each been written at a different time against a different base — one divided by Net Revenue, one by Gross Sales Revenue. On that mix, refunds looked like the largest driver of lost revenue at €142K. Rebuilt so all three divide by the same base (Gross Order Value) with mutually-exclusive numerators, the true ranking flips: cancellations are the largest driver, refunds the smallest, and the old €142K figure was overstated by ~67%. Full derivation in [05_Power BI/decisions_log.md](05_Power%20BI/decisions_log.md) — kept as the clearest example in this project that a denominator error isn't cosmetic, it can invert the decision an executive makes.
 - **Product, subcategory, channel, and brand revenue all tested uniformly random — so Pareto/concentration analysis was deliberately not built.** Top-3 subcategories capture only 28.3% of revenue (a real Pareto's top ~20% would carry ~80%); all four sales channels land within 0.34 points of exactly 25%. The measures were built, verified, and then discarded rather than shipped, because a chart with no real pattern is clutter even when the numbers are correct. `order_status`, by contrast, is genuinely weighted in the generator and is exactly where the revenue-loss analysis above landed.
 
 ---
@@ -539,7 +537,7 @@ A few problems didn't show up until well after the initial cleaning pass — sur
 - Documenting the *why*, not just the *what*, is what makes a project auditable later — including this README rewrite itself, which exists because the original version had drifted from what the project had actually become.
 - Knowing when *not* to ship a measure or a chart is a separate skill from being able to build one. The Pareto measures and the loyalty-split visual were both built correctly and both discarded — a correct number that reveals no real pattern is still clutter, and worse, an invitation for someone to explain noise as if it were a finding.
 - Measures that will ever appear in the same visual, or ever be summed, have to be designed as a set from the start. Three loss-rate measures were each individually correct when written, and still produced an inverted, executive-facing ranking once placed side by side — because each was built against a different denominator at a different time.
-- Context engineering (curating what an AI assistant can see — `CLAUDE.md`, `.claude/skills/`, structured reference docs like `decisions_log.md`) only pays off if that context stays accurate. This project hit that failure mode twice: stale file paths after renaming `powerbi/` to `05_Power BI/`, and `DATA_DICTIONARY.md` pointing at a `DATA_QUALITY_ISSUES.md` that doesn't exist. Confidently wrong context is worse than no context at all — it has to be maintained like code, not written once and trusted.
+- Context engineering (curating what an AI assistant can see — `CLAUDE.md`, `.claude/skills/`, structured reference docs like `decisions_log.md`) only pays off if that context stays accurate. This project hit that failure mode twice: stale file paths after renaming the `powerbi/` folder to `05_Power BI/`, and `DATA_DICTIONARY.md` pointing at a `DATA_QUALITY_ISSUES.md` that doesn't exist. Confidently wrong context is worse than no context at all — it has to be maintained like code, not written once and trusted.
 
 ---
 
@@ -548,8 +546,8 @@ A few problems didn't show up until well after the initial cleaning pass — sur
 - Customer segmentation (RFM), CLV modelling, and sales forecasting were scaffolded in this repo but removed — planned as separate, dedicated project(s) instead. See [Priority Focus: Customer Segmentation (RFM)](#priority-focus-customer-segmentation-rfm).
 - Reconcile the one remaining naming mismatch: `BUSINESS_METADATA.md` calls the core revenue measure "Cash-Based Net Revenue," while the dashboard and measures library call it "Net Revenue."
 - Track down where `dim_product[Inventory]` (used by the dashboard's Sell-Through Rate measure) actually comes from — it isn't in `dim_product.sql`, the generator script, or any doc, so it was likely added directly in Power BI during dashboard design and never synced back to the documented schema.
-- **Reconcile two conflicting counts for the same underlying issue.** `docs/business_rules/BUSINESS_METADATA.md` documents 452 rows (0.6%) with `ghost_product_flag = TRUE`, verified live against Postgres. `powerbi/decisions_log.md` documents 6,575 rows (8.7%) with a `product_key` matching no `dim_product` row "not even the -1 placeholder," verified against the Power BI model. These may be different things (a broken join specific to the Power BI import vs. the Postgres-level flag) or the same issue measured two different ways — not yet resolved, and the two source docs currently contradict each other on the size of the problem.
-- Add a Payments and/or Marketing page to the dashboard — both were designed-for but deliberately descoped (`powerbi/archive/dashboard_design.md`, "Deferred / Out of scope").
+- **Reconcile two conflicting counts for the same underlying issue.** `docs/business_rules/BUSINESS_METADATA.md` documents 452 rows (0.6%) with `ghost_product_flag = TRUE`, verified live against Postgres. `05_Power BI/decisions_log.md` documents 6,575 rows (8.7%) with a `product_key` matching no `dim_product` row "not even the -1 placeholder," verified against the Power BI model. These may be different things (a broken join specific to the Power BI import vs. the Postgres-level flag) or the same issue measured two different ways — not yet resolved, and the two source docs currently contradict each other on the size of the problem.
+- Add a Payments and/or Marketing page to the dashboard — both were designed-for but deliberately descoped (`05_Power BI/archive/dashboard_design.md`, "Deferred / Out of scope").
 - Add dashboard screenshots to this README for viewers who can't open the live Power BI link.
 - Follow up on the open questions `04_EDA/insights.md` ranks highest: what's driving the H1 2024 return-rate increase, and whether Failed/Pending payments concentrate in specific categories or payment methods.
 
@@ -615,7 +613,7 @@ Run `dim_customer.sql` first, then `dim_customer_duplicate_resolution.sql` (it a
 
 **Step 6 — Export to Power BI**
 
-Run `powerbi/export_mart_to_csv.sql` to export every mart table to CSV in `powerbi/mart_export/` — booleans are cast to `'true'`/`'false'` text so Power BI's type detection reads them correctly (Postgres otherwise writes `t`/`f`, which imports as Text). Load the CSVs into Power BI Desktop, mark `dim_date` as a Date Table, and build the measures in `powerbi/dax_measures.md`, following the reasoning in `powerbi/decisions_log.md`.
+Run `05_Power BI/export_mart_to_csv.sql` to export every mart table to CSV in `05_Power BI/mart_export/` — booleans are cast to `'true'`/`'false'` text so Power BI's type detection reads them correctly (Postgres otherwise writes `t`/`f`, which imports as Text). Load the CSVs into Power BI Desktop, mark `dim_date` as a Date Table, and build the measures in `05_Power BI/dax_measures.md`, following the reasoning in `05_Power BI/decisions_log.md`.
 
 ---
 
