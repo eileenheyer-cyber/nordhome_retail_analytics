@@ -1,5 +1,7 @@
 # NordHome Retail Analytics — End-to-End Portfolio Project
 
+![NordHome Retail Analytics](assets/github_cover.jpg)
+
 ## Table of Contents
 
 **Overview**
