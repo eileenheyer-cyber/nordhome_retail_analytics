@@ -181,6 +181,7 @@ nordhome_retail_analytics/
 │   ├── export_mart_to_csv.sql         ← mart → CSV export (boolean-safe casts)
 │   ├── mart_export/                   ← exported CSVs (not committed)
 │   ├── dax_measures.md                ← current DAX measure reference
+│   ├── kpi_reference.md               ← business-facing KPI glossary, no DAX
 │   ├── decisions_log.md               ← current modelling/design decisions
 │   └── archive/                       ← superseded drafts, kept as history
 │       ├── power_bi_modelling_decisions.md
@@ -469,7 +470,7 @@ KPI cards cover revenue from converted customers, customers reached, click-throu
 
 > **Open question:** this page's channel table includes a **Pinterest** channel and cost metrics (CPA, CPC) not present in the documented `fact_marketing_touchpoints` schema or `docs/business_rules/BUSINESS_METADATA.md` — likely part of the data regenerated during dashboard design (see [Disclaimer](#disclaimer)). Worth reconciling back into the source docs if this page is kept long-term.
 
-The **current** measure definitions are in [05_Power BI/dax_measures.md](05_Power%20BI/dax_measures.md), and the reasoning behind every non-obvious modelling and design choice — including two of this project's best data-quality catches, detailed in [Challenges & Decisions](#challenges--decisions) — is in [05_Power BI/decisions_log.md](05_Power%20BI/decisions_log.md). `05_Power BI/archive/dashboard_design.md` and `05_Power BI/archive/power_bi_modelling_decisions.md` are earlier drafts, now superseded, kept only as a historical record of how the design evolved.
+The **current** measure definitions are in [05_Power BI/dax_measures.md](05_Power%20BI/dax_measures.md) (with DAX and reasoning) and [05_Power BI/kpi_reference.md](05_Power%20BI/kpi_reference.md) (just the KPI cards, in business language, no DAX). The reasoning behind every non-obvious modelling and design choice — including two of this project's best data-quality catches, detailed in [Challenges & Decisions](#challenges--decisions) — is in [05_Power BI/decisions_log.md](05_Power%20BI/decisions_log.md). `05_Power BI/archive/dashboard_design.md` and `05_Power BI/archive/power_bi_modelling_decisions.md` are earlier drafts, now superseded, kept only as a historical record of how the design evolved.
 
 > **Note:** the `.pbix` was built and refreshed in Power BI Desktop outside this repository and published to the Power BI Service (link above) — it isn't committed here; an empty placeholder that used to sit at `dashboards/nordhome_dashboard.pbix` was removed since it held no real content.
 

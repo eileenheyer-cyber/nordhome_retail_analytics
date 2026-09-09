@@ -2,7 +2,7 @@
 
 Sourced from the current PBIP-based rebuild of the dashboard (25 tables, 16 relationships, 143 measures in a dedicated `_measures` table, organised by display folder). This is the final, authoritative measures reference for this project — earlier drafts (`power_bi_modelling_decisions.md`, `dashboard_design.md`) are superseded.
 
-Each entry gives what the measure does, its DAX, and *why* it's written that way. Foundations first, then every measure driving a KPI card, page by page.
+Each entry gives what the measure does, its DAX, and *why* it's written that way. Foundations first, then every measure driving a KPI card, page by page. For a lighter, business-facing list of just the KPI cards (no DAX), see [kpi_reference.md](kpi_reference.md).
 
 ---
 
